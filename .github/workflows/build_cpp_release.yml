@@ -1,16 +1,8 @@
-name: YLP CPP Release
-
+name: YLP Weekly
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - "**.cpp"
-      - "**.hpp"
-      - "**.h"
-      - "**.rc"
-      - "CMakeLists.txt"
+  schedule:
+    - cron: '0 4 * * 0'
   workflow_dispatch:
-
 
 jobs:
 
@@ -23,6 +15,7 @@ jobs:
       full_sha: ${{ steps.var.outputs.full_sha }}
       new_tag: ${{ steps.get_version.outputs.new_tag }}
       ffi_tag: ${{ steps.get_version.outputs.ffi_tag }}
+      old_tag: ${{ steps.get_version.outputs.old_tag }}
 
     steps:
       - name: Checkout Repo
@@ -35,7 +28,7 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const tags = await github.rest.repos.listTags({ owner: owner, repo: repo });
+            const tags = await github.rest.repos.listTags({ owner, repo });
             
             let newTag;
             let oldTag;
@@ -43,41 +36,33 @@ jobs:
             let latestTag = tags.data.length ? tags.data[0].name : "2.0.0.0";
             
             const versionParts = latestTag.split('.').map(Number);
-            if (versionParts[0] < 2)
-            {
+            if (versionParts[0] < 2) {
                 versionParts[0] = 2;
                 versionParts[1] = 0;
                 versionParts[2] = 0;
                 versionParts[3] = 0;
-            }
-            else if (versionParts[1] === 9 && versionParts[2] === 9 && versionParts[3] === 9) 
-            {
+            } else if (versionParts[1] === 9 && versionParts[2] === 9 && versionParts[3] === 9) {
                 versionParts[0] += 1;
                 versionParts[1] = 0;
                 versionParts[2] = 0;
                 versionParts[3] = 0;
-            } 
-            else if (versionParts[2] === 9)
-            {
+            } else if (versionParts[2] === 9) {
                 versionParts[1] += 1;
                 versionParts[2] = 0;
                 versionParts[3] = 0;
-            } 
-            else if (versionParts[3] === 9)
-            {
+            } else if (versionParts[3] === 9) {
                 versionParts[2] += 1;
                 versionParts[3] = 0;
-            } 
-            else
-            {
+            } else {
                 versionParts[3] += 1;
             }
 
-            newTag = `${versionParts.join('.')}`;
+            newTag = versionParts.join('.');
             oldTag = latestTag;
-            ffiTag = newTag.replaceAll(".",",");
-            core.setOutput("new_tag", newTag); 
-            core.setOutput("ffi_tag", ffiTag); 
+            ffiTag = newTag.replaceAll(".", ",");
+            
+            core.setOutput("new_tag", newTag);
+            core.setOutput("ffi_tag", ffiTag);
             core.setOutput("old_tag", oldTag);
 
       - name: Update Version Resource
@@ -110,7 +95,6 @@ jobs:
                       VALUE "OriginalFilename", "YLP.exe\0"
                       VALUE "ProductName", "YLP\0"
                       VALUE "ProductVersion", "$versionString"
-                      VALUE "CommitHash", "$commit"
                   END
               END
 
@@ -122,7 +106,7 @@ jobs:
           "@
 
           Set-Content -Path $file -Value $content -Encoding UTF8
-    
+
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -155,28 +139,81 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Write Changelog
-        id: write_changelog
-        run: |
-            commitMessage=$(git log -1 --pretty=format:"%s")
-            commitBody=$(git log -1 --pretty=format:"%b")
-            echo "Commit Message: $commitMessage"
-            echo "Commit Body: $commitBody"
-            {
-              echo "changelog_body<<EOF"
-              echo "$commitMessage"
-              echo ""
-              echo "$commitBody"
-              echo "EOF"
-            } >> "$GITHUB_ENV"
-        shell: bash
+      - name: Generate Changelog
+        id: changelog
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const lastTag = "${{ needs.build.outputs.old_tag }}";
+            const { data: tagRefs } = await github.rest.git.getRef({ owner, repo, ref: `tags/${lastTag}` });
+            const tagSha = tagRefs.object.sha;
+            const { data: tagCommit } = await github.rest.repos.getCommit({ owner, repo, ref: tagSha });
+            const lastTagDate = new Date(tagCommit.commit.committer.date);
+            const { data: pulls } = await github.rest.pulls.list({
+              owner, repo, state: "closed", sort: "updated", direction: "asc", per_page: 100
+            });
+
+            let changelog = "";
+
+            const mergedPRs = pulls.filter(pr => pr.merged_at && new Date(pr.merged_at) > lastTagDate);
+            const extractField = (body, fieldName) => {
+              const regex = new RegExp(`${fieldName}:\\s*([\\s\\S]*?)(?=\\n\\w+:|$)`, 'm');
+              const match = body.match(regex);
+              if (!match)
+                return "";
+
+              return match[1].trim();
+            };
+
+            if (mergedPRs.length > 0) {
+              for (const pr of mergedPRs) {
+                changelog += `## PR #${pr.number}: ${pr.title}\n`;
+                const body = pr.body || "";
+
+                const sections = {
+                  "### 🚀 Features": extractField(body, "feature_text"),
+                  "### 🪲 Fixes": extractField(body, "fix_text"),
+                  "### 🧩 Refactors": extractField(body, "refactor_text"),
+                  "### 📝 Documentation": extractField(body, "docs_text"),
+                  "### 🧹 Chores": extractField(body, "chore_text")
+                };
+
+                for (const [heading, content] of Object.entries(sections)) {
+                  if (content) {
+                    const lines = content.split('\n').map(line => line.trim().replace(/^-\s*/, ''));
+                    changelog += heading + "\n\n";
+                    for (const line of lines) {
+                      if (line)
+                        changelog += `- ${line}\n`;
+                    }
+                    changelog += "\n";
+                  }
+                }
+              }
+            } else {
+              const { data: commits } = await github.rest.repos.listCommits({
+                owner, repo, sha: "main", since: lastTagDate.toISOString()
+              });
+
+              for (const commit of commits.reverse()) {
+                if (commit.commit.message.toLowerCase().startsWith("merge"))
+                  continue;
+          
+                changelog += `## ${commit.commit.message}\n\n`;
+                if (commit.commit.body)
+                  changelog += `${commit.commit.body}\n\n`;
+              }
+            }
+
+            core.setOutput("changelog", changelog);
 
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           name: binary
-        
-      - name: Echo build_sha256
+
+      - name: Calculate SHA256
         id: build_sha
         run: |
           sha256sum YLP.exe > sha256.checksum
@@ -197,7 +234,7 @@ jobs:
               ### Build SHA256:
                     ${{ steps.build_sha.outputs.build_sha }}
               
-              ## Changelog
-              ${{ env.changelog_body }}
+              # Changelog
+              ${{ steps.changelog.outputs.changelog }}
           files: |
             YLP.exe

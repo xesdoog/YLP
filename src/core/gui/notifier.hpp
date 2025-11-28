@@ -65,7 +65,7 @@ namespace YLP
 				m_Notif = notif;
 			}
 
-			bool ShouldExpire() const noexcept
+			bool HasExpired() const noexcept
 			{
 				bool cond = false;
 				if (auto n = m_Notif.lock())

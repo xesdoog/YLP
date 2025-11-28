@@ -126,22 +126,22 @@ namespace YLP
 
 		if (m_HeBeWatchin)
 		{
-			LOG_ERROR("ProcMon: BattlEye detected! Auto-inject skipped.");
+			LOG_ERROR("[ProcMon]: BattlEye detected! Auto-inject skipped.");
 			return false;
 		}
 
 		if (m_Scanner->IsModuleLoaded(m_Menu->m_DllName))
 		{
-			LOG_WARN("ProcMon: Module was already injected. Auto-inject skipped.");
+			LOG_WARN("[ProcMon]: Module was already injected. Auto-inject skipped.");
 			return false;
 		}
 
-		LOG_INFO("ProcMon: Preparing to auto-inject...");
+		LOG_INFO("[ProcMon]: Preparing to auto-inject...");
 
 		auto& pointers = (m_MonitorMode == MonitorLegacy) ? g_Pointers.Legacy : g_Pointers.Enhanced;
 		if (!pointers.GameTime || !pointers.GameState)
 		{
-			LOG_ERROR("ProcMon: Auto-inject failed! Game pointers not ready.");
+			LOG_ERROR("[ProcMon]: Auto-inject failed! Game pointers not ready.");
 			return false;
 		}
 
@@ -161,7 +161,7 @@ namespace YLP
 
 			if (gamestate == 5)
 			{
-				std::string msg = "ProcMon: Auto-injecting in 3 seconds...";
+				std::string msg = "[ProcMon]: Auto-injecting in 3 seconds...";
 				if (msg != last_log)
 				{
 					LOG_INFO(msg);
@@ -174,12 +174,12 @@ namespace YLP
 			}
 			else if (gamestate == 0 || gamestate > 5)
 			{
-				LOG_WARN("ProcMon: Too late to inject! You can still manually inject at your own risk.");
+				LOG_WARN("[ProcMon]: Too late to inject! You can still manually inject at your own risk.");
 				break;
 			}
 			else
 			{
-				std::string msg = "ProcMon: Waiting for the landing page...";
+				std::string msg = "[ProcMon]: Waiting for the landing page...";
 				if (msg != last_log)
 				{
 					LOG_INFO(msg);
@@ -199,29 +199,29 @@ namespace YLP
 	bool ProcessMonitor::OnPostInject()
 	{
 		const auto& dllName = m_Menu->m_DllName;
-		LOG_INFO("ProcMon: Checking module load for {}...", dllName);
+		LOG_INFO("[ProcMon]: Checking module load for {}...", dllName);
 
 		if (!WaitForModuleLoad(dllName, 10000))
 		{
-			LOG_WARN("ProcMon: Module {} not detected after injection.", dllName);
+			LOG_WARN("[ProcMon]: Module {} not detected after injection.", dllName);
 			return false;
 		}
 
-		LOG_INFO("ProcMon: Module {} loaded successfully. Checking process stability after injection...", dllName);
+		LOG_INFO("[ProcMon]: Module {} loaded successfully. Checking process stability after injection...", dllName);
 		auto result = PsUtils::WaitForProcessExit(m_Scanner->GetProcessHandle(), 10000);
 
 		if (result.has_value())
 		{
 			DWORD exitCode = result.value();
-			LOG_WARN("ProcMon: Possible crash detected! Exit Code: 0x{:X} ({})", exitCode, PsUtils::TranslateError(exitCode));
+			LOG_WARN("[ProcMon]: Possible crash detected! Exit Code: 0x{:X} ({})", exitCode, PsUtils::TranslateError(exitCode));
 			return false;
 		}
 
-		LOG_INFO("ProcMon: Everything seems fine.");
+		LOG_INFO("[ProcMon]: Everything seems fine.");
 
 		if (Config().autoExit)
 		{
-			LOG_INFO("YLP: Shutting down in 3 seconds...");
+			LOG_INFO("[YLP]: Shutting down in 3 seconds...");
 			GUI::ToggleDisableUI(true);
 			std::this_thread::sleep_for(3s);
 			m_Running.store(false);
@@ -270,7 +270,7 @@ namespace YLP
 					if (!m_Found && m_Scanner && m_Scanner->FindProcess(m_ProcessName))
 					{
 						m_Found = true;
-						LOG_INFO("ProcMon: Found process '{}'", m_ProcessName);
+						LOG_INFO("[ProcMon]: Found process '{}'", m_ProcessName);
 
 						if (m_OnFound)
 						{
@@ -284,13 +284,13 @@ namespace YLP
 							}
 							catch (const std::exception& e)
 							{
-								LOG_ERROR("ProcMon: Exception in callback: {}", e.what());
+								LOG_ERROR("[ProcMon]: Exception in callback: {}", e.what());
 							}
 						}
 					}
 					else if (m_Found && !m_Scanner->IsProcessRunning())
 					{
-						LOG_INFO("ProcMon: Process '{}' was terminated.", m_ProcessName);
+						LOG_INFO("[ProcMon]: Process '{}' was terminated.", m_ProcessName);
 						{
 							std::scoped_lock lock(m_Mutex);
 							m_Found = false;
@@ -305,13 +305,13 @@ namespace YLP
 				std::this_thread::sleep_for(250ms);
 			}
 
-			LOG_INFO("ProcMon: Stopped monitoring '{}'", m_ProcessName);
+			LOG_INFO("[ProcMon]: Stopped monitoring '{}'", m_ProcessName);
 			m_Running = false;
 			m_Scanner.reset();
 		}
 		catch (const std::exception& e)
 		{
-			LOG_ERROR("ProcMon: Caught unhandled exception: {}", e.what());
+			LOG_ERROR("[ProcMon]: Caught unhandled exception: {}", e.what());
 		}
 	}
 }

@@ -57,10 +57,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	ThreadManager::RunDelayed([] {
 		YLPUpdater.Check();
-	}, 7s);
+	}, 5s);
 
-	g_Running = true;
-	
+	g_Running = true;	
 	MSG msg = {};	
 	while (msg.message != WM_QUIT)
 	{

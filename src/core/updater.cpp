@@ -48,7 +48,7 @@ namespace YLP
 			if (!GetFileVersionInfoW(path, 0, size, data.data()))
 			{
 				DWORD err = GetLastError();
-				LOG_ERROR("Failed to get file version information! {}\t{}", err, PsUtils::TranslateError(err));
+				LOG_ERROR("[YLP]: Failed to get file version information! {}\t{}", err, PsUtils::TranslateError(err));
 				return {};
 			}
 
@@ -79,20 +79,65 @@ namespace YLP
 		{
 #ifdef DEBUG
 			LOG_DEBUG("[YLP]: HTML scrape failed! Falling back to REST API");
-#endif // DEBUG
+#endif
 
-			auto response = Utils::HttpRequest(L"api.github.com", L"/repos" + m_ReleaseUrl.second);
-			if (!response.success)
+			const std::wstring host = L"api.github.com";
+			const std::vector<std::wstring> headers = {
+			    L"User-Agent: YLP-GitHubClient\r\n",
+			    L"Accept: application/vnd.github+json\r\n",
+			};
+
+			auto response = Utils::HttpRequest(host, L"/repos/xesdoog/YLP/releases/latest", headers);
+			if (response.success)
 			{
-				LOG_ERROR("[YLP]: Failed to get remote version! Please try again later.");
-				m_State = Idle;
-				return {};
+				try
+				{
+					auto j = nlohmann::json::parse(response.body);
+					if (j.contains("tag_name") && j["tag_name"].is_string())
+					{
+						latest_tag = j["tag_name"].get<std::string>();
+					}
+				}
+				catch (const std::exception& e)
+				{
+					LOG_ERROR("[YLP]: Failed to parse latest tag: {}", e.what());
+				}
 			}
 
-			latest_tag = response.body;
+			if (latest_tag.empty())
+			{
+				auto response2 = Utils::HttpRequest(host, L"/repos/xesdoog/YLP/tags", headers);
+				if (response2.success)
+				{
+					try
+					{
+						auto tags = nlohmann::json::parse(response2.body);
+						if (!tags.empty() && tags[0].contains("name"))
+							latest_tag = tags[0]["name"].get<std::string>();
+					}
+					catch (const std::exception& e)
+					{
+						LOG_ERROR("[YLP]: Failed to parse tags: {}", e.what());
+					}
+				}
+			}
 		}
 
-		Version v;
+		if (latest_tag.empty())
+		{
+			LOG_ERROR("[YLP]: Failed to get remote version! Please try again later.");
+			m_State = Idle;
+			return {};
+		}
+
+		if (!std::regex_match(latest_tag, std::regex(R"([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)")))
+		{
+			LOG_ERROR("[YLP]: Invalid version tag: {}", latest_tag);
+			m_State = Idle;
+			return {};
+		}
+
+		Version v{};
 		swscanf_s(Utils::UTF8ToWide(latest_tag).c_str(), L"%d.%d.%d.%d", &v.major, &v.minor, &v.patch, &v.build);
 		return v;
 	}
@@ -100,8 +145,9 @@ namespace YLP
 	void Updater::Check()
 	{
 		ThreadManager::Run([this] {
-			LOG_INFO("[YLP]: Checking for updates...");
 			m_State = Checking;
+			LOG_INFO("[YLP]: Checking for updates...");
+			
 			Version current = GetLocalVersion();
 			Version remote = GetRemoteVersion();
 

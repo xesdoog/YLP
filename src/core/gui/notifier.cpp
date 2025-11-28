@@ -94,7 +94,7 @@ namespace YLP
 				continue;
 
 			total += n->ComputeHeight();
-			total += 20.0f;
+			total += 10.0f;
 		}
 
 		return total + 20.f;
@@ -126,7 +126,6 @@ namespace YLP
 
 		if (m_ShouldClose)
 		{
-			LOG_DEBUG("shouldClose");
 			ImGui::CloseCurrentPopup();
 			m_IsOpen = false;
 			m_ShouldClose = false;
@@ -158,7 +157,7 @@ namespace YLP
 			ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + 12.0f, 20.0f));
 			ImGui::TitleText("Notifications");
 			ImGui::SameLine();
-			ImGui::SetCursorPos(ImVec2(popupSize.x - 40.f, 15.0f));
+			ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 40.0f, 15.0f));
 			if (ImGui::Button(ICON_DELETE))
 			{
 				std::scoped_lock lock(m_Mutex);
@@ -189,7 +188,7 @@ namespace YLP
 					continue;
 
 				n->Draw(xLeft, contentW, draw);
-				ImGui::Dummy(ImVec2(1, 12));
+				ImGui::Dummy(ImVec2(1, 1));
 			}
 			ClearReadImpl();
 		}
@@ -205,26 +204,31 @@ namespace YLP
 		ImGuiIO& io = ImGui::GetIO();
 		const float margin = 15.0f;
 		const float maxWidth = 360.0f;
-		ImVec2 pos(
-		    ImGui::GetIO().DisplaySize.x - maxWidth - margin,
-		    margin * 4);
+		auto& toast = **m_Toasts.begin();
+		auto notif = toast.Get();
 
-		for (auto it = m_Toasts.begin(); it != m_Toasts.end();)
+		if (!notif || toast.HasExpired())
+			m_Toasts.erase(m_Toasts.begin());
+		else
 		{
-			Toast& toast = **it;
-			auto notif = toast.Get();
-			if (!notif || toast.ShouldExpire())
+			ImVec2 toastPos(io.DisplaySize.x - maxWidth - margin, margin * 4);
+			ImGui::SetCursorScreenPos(toastPos);
+			notif->Draw(toastPos.x, maxWidth, drawList);
+			auto remaining = m_Toasts.size() - 1;
+			if (remaining > 0)
 			{
-				it = m_Toasts.erase(it);
-				continue;
-			}
-
-			{
-				ImGui::SetCursorScreenPos(pos);
-				notif->Draw(pos.x, maxWidth, drawList);
-				float h = notif->ComputeHeight();
-				pos.y -= (h + 10.0f);		
-				++it;
+				std::string countText = std::format("+{}", remaining);
+				ImVec2 countTextSize = ImGui::CalcTextSize(countText.c_str());
+				float radius = 12.0f;
+				float toastHeight = notif->ComputeHeight();
+				ImVec2 counterPos(toastPos.x + maxWidth - radius, toastPos.y - radius);
+				ImVec2 textPos(counterPos.x - (countTextSize.x / 2), counterPos.y - (countTextSize.y / 2));
+				ImU32 counterBg = IM_COL32(55, 55, 55, 255);
+				ImGui::SetCursorScreenPos(toastPos);
+				drawList->AddCircleFilled(counterPos, radius, counterBg);
+				ImGui::PushFont(Fonts::Small);
+				drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), countText.c_str());
+				ImGui::PopFont();
 			}
 		}
 	}

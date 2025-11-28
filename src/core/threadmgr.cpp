@@ -137,7 +137,7 @@ namespace YLP
 			}
 			catch (...)
 			{
-				LOG_ERROR("[ThreadManager]: Caught unknown exception!");
+				LOG_ERROR("[ThreadManager]: Unhandled exception!");
 			}
 		}
 	}

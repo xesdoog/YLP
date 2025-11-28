@@ -98,18 +98,18 @@ namespace YLP
 			return GetInstance().m_SortedView;
 		}
 
-		static void SetSortMode(const eSortMode mode)
-		{
-			auto old = GetInstance().m_SortMode;
-			GetInstance().m_SortMode = mode;
-
-			if (old != mode)
-				SortRepositories();
-		}
-
 		static const eSortMode GetSortMode()
 		{
 			return GetInstance().m_SortMode;
+		}
+
+		static void SetSortMode(const eSortMode mode)
+		{
+			if (GetSortMode() == mode)
+				return;
+
+			GetInstance().m_SortMode = mode;
+			SortRepositories();
 		}
 
 		static const eLoadState GetState()

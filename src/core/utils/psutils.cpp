@@ -106,7 +106,7 @@ namespace YLP::PsUtils
 	{
 		if (!hProc || hProc == INVALID_HANDLE_VALUE)
 		{
-			LOG_ERROR("WaitForProcessExit: invalid handle: 0x{:X}", (uintptr_t)hProc);
+			LOG_ERROR("[PsUtils]: WaitForProcessExit failed with invalid handle: 0x{:X}", (uintptr_t)hProc);
 			return std::nullopt;
 		}
 
@@ -117,7 +117,7 @@ namespace YLP::PsUtils
 			if (!GetExitCodeProcess(hProc, &exitCode))
 			{
 				DWORD last = GetLastError();
-				LOG_ERROR("GetExitCodeProcess failed: 0x{:X} ({})", last, TranslateError(last));
+				LOG_ERROR("[PsUtils]: GetExitCodeProcess failed with error 0x{:X} ({})", last, TranslateError(last));
 				return std::nullopt;
 			}
 			return exitCode;
@@ -129,7 +129,7 @@ namespace YLP::PsUtils
 		else
 		{
 			DWORD last = GetLastError();
-			LOG_ERROR("WaitForSingleObject failed: 0x{:X} ({})", last, TranslateError(last));
+			LOG_ERROR("[PsUtils]: WaitForSingleObject failed with error 0x{:X} ({})", last, TranslateError(last));
 			return std::nullopt;
 		}
 	}
@@ -329,11 +329,11 @@ namespace YLP::PsUtils
 		if (wait == WAIT_FAILED)
 		{
 			const DWORD err = GetLastError();
-			LOG_WARN("WaitForSingleObject failed: {}", std::system_category().message(err));
+			LOG_WARN("[PsUtils]: WaitForSingleObject failed with error {}", std::system_category().message(err));
 		}
 		else if (wait == WAIT_TIMEOUT)
 		{
-			LOG_WARN("Remote thread timed out after 10 seconds.");
+			LOG_WARN("[PsUtils]: Remote thread timed out after 10 seconds.");
 		}
 
 		DWORD exitCode = 0;
@@ -352,12 +352,12 @@ namespace YLP::PsUtils
 
 		if (!VirtualFreeEx(hProcess.Get(), remoteMem, 0, MEM_RELEASE))
 		{
-			LOG_WARN("VirtualFreeEx failed during cleanup: {}", std::system_category().message(GetLastError()));
+			LOG_WARN("[PsUtils]: VirtualFreeEx failed during cleanup with error {}", std::system_category().message(GetLastError()));
 		}
 
 		char buf[64];
-		sprintf_s(buf, "Injected successfully. Remote module handle: 0x%08X", static_cast<unsigned int>(exitCode));
-		LOG_INFO("{}", buf);
+		sprintf_s(buf, "Successfully injected %s into %s. Remote module handle: 0x%08X", dllPath.filename().string().c_str(), processName.data(), static_cast<unsigned int>(exitCode));
+		LOG_DEBUG("[PsUtils]: {}", buf);
 		return InjectResult::Ok();
 	}
 
@@ -395,7 +395,8 @@ namespace YLP::PsUtils
 		SC_HANDLE scm = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
 		if (!scm)
 		{
-			LOG_DEBUG("OpenSCManager failed: {}", GetLastError());
+			DWORD err = GetLastError();
+			LOG_DEBUG("[PsUtils]: OpenSCManager failed with error {}: {}", err, TranslateError(err));
 			return false;
 		}
 

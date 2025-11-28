@@ -199,6 +199,13 @@ namespace YLP
 				    R"(data-snippet-clipboard-copy-content=\"([0-9a-fA-F]{64})[^"]*?\.dll)",
 				    1);
 
+				if (remote_sha.empty())
+				{
+					LOG_ERROR("[{}]: Failed to read remote checksum! Check your Internet connection then try again.", m_Name);
+					m_State = Idle;
+					return;
+				}
+
 				if (m_Checksum.empty())
 					UpdateChecksum();
 

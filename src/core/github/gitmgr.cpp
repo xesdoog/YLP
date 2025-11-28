@@ -16,6 +16,8 @@
 
 
 #include <core/utils/unzip.hpp>
+#include <core/gui/gui.hpp>
+#include <core/gui/notifier.hpp>
 #include "gitmgr.hpp"
 
 
@@ -70,7 +72,7 @@ namespace YLP
 
 		if (j.empty())
 		{
-			LOG_WARN("Lua repository cache is empty!");
+			LOG_WARN("[GitMgr]: Lua repository cache is empty!");
 			return false;
 		}
 
@@ -80,11 +82,12 @@ namespace YLP
 		auto& repositories = j["repositories"];
 		if (repositories.empty())
 		{
-			LOG_WARN("Lua repository cache is empty!");
+			LOG_WARN("[GitMgr]: Lua repository cache is empty!");
 			return false;
 		}
 
 		bool should_update_cache = false;
+		bool has_pending_updates = false;
 		for (auto& [name, repo] : repositories.items())
 		{
 			Repository script = repo.get<Repository>();
@@ -116,6 +119,8 @@ namespace YLP
 			}
 
 			script.isPendingUpdate = script.is_outdated();
+			if (script.isPendingUpdate)
+				has_pending_updates = true;
 
 			if (installed)
 				script.currentPath = disabled ? disabledPath : localPath;
@@ -134,7 +139,15 @@ namespace YLP
 		}
 
 		if (log)
-			LOG_INFO("Loaded {} Lua repositories from cache", m_Repos.size());
+			LOG_INFO("[GitMgr]: Loaded {} Lua repositories from cache", m_Repos.size());
+
+		if (has_pending_updates)
+		{
+			Notifier::Add("Lua", "Updates are available for some of your installed scripts.", Notifier::Info, [this] {
+				SetSortMode(eSortMode::INSTALLED);
+				GUI::SetActiveTab(ICON_LUA);
+			});
+		}
 
 		return true;
 	}
@@ -160,7 +173,7 @@ namespace YLP
 	{
 		try
 		{
-			LOG_INFO("Fetching Lua repositories from https://github.com/YimMenu-Lua");
+			LOG_INFO("[GitMgr]: Fetching Lua repositories from https://github.com/YimMenu-Lua");
 			m_State = eLoadState::LOADING;
 			std::wstring host = L"api.github.com";
 			std::wstring path = L"/orgs/" + std::wstring(m_OrgName.begin(), m_OrgName.end()) + L"/repos?per_page=100";
@@ -175,7 +188,7 @@ namespace YLP
 			{
 				if (response.status == 304)
 				{
-					LOG_DEBUG("Repository cache is still valid. Loading it...");
+					LOG_DEBUG("[GitMgr]: Repository cache is still valid. Loading it...");
 					if (LoadCache())
 					{
 						SortRepositories();
@@ -183,11 +196,11 @@ namespace YLP
 						return;
 					}
 					else
-						LOG_ERROR("Failed to load repository cache! Attempting to refetch...");
+						LOG_ERROR("[GitMgr]: Failed to load repository cache! Attempting to refetch...");
 				}
 				else
 				{
-					LOG_ERROR("GitHub request failed with HTTP {}", response.status);
+					LOG_ERROR("[GitMgr]: GitHub request failed with HTTP {}", response.status);
 					m_State = eLoadState::FAILED;
 					return;
 				}
@@ -195,7 +208,7 @@ namespace YLP
 
 			if (response.body.empty())
 			{
-				LOG_ERROR("Empty GitHub response!");
+				LOG_ERROR("[GitMgr]: Empty GitHub response!");
 				m_State = eLoadState::FAILED;
 				return;
 			}
@@ -203,20 +216,19 @@ namespace YLP
 			auto j = nlohmann::json::parse(response.body, nullptr, false);
 			if (j.is_discarded())
 			{
-				LOG_ERROR("Failed to parse GitHub response!");
+				LOG_ERROR("[GitMgr]: Failed to parse GitHub response!");
 				m_State = eLoadState::FAILED;
 				return;
 			}
 
 			m_RepoETag = response.eTag;
 			std::map<std::string, Repository> newRepos;
-
 			for (auto& repo : j)
 			{
 				std::string name = repo["name"];
 				if (std::find(m_IgnoreList.begin(), m_IgnoreList.end(), name) != m_IgnoreList.end())
 				{
-					LOG_INFO("Skipping repository {}", name);
+					LOG_INFO("[GitMgr]: Skipping repository {}", name);
 					continue;
 				}
 
@@ -245,14 +257,14 @@ namespace YLP
 				m_Repos.swap(newRepos);
 			}
 
-			LOG_INFO("Fetched {} repositories from GitHub", m_Repos.size());
+			LOG_INFO("[GitMgr]: Fetched {} repositories from GitHub", m_Repos.size());
 			SaveCache();
 			SortRepositories();
 			m_State = eLoadState::READY;
 		}
 		catch (const std::exception& e)
 		{
-			LOG_ERROR("Exception caught while fetching repositories from Github! {}", e.what());
+			LOG_ERROR("[GitMgr]: Exception caught while fetching repositories from Github! {}", e.what());
 		}
 	}
 
@@ -268,7 +280,7 @@ namespace YLP
 			}
 			catch (const std::exception& e)
 			{
-				LOG_ERROR("Failed to refresh repositories! {}", e.what());
+				LOG_ERROR("[GitMgr]: Failed to refresh repositories! {}", e.what());
 				m_State = eLoadState::FAILED;
 			}
 		});
@@ -335,7 +347,7 @@ namespace YLP
 
 		IO::RemoveAll(repo.currentPath);
 
-		repo.isDisabled = false;
+		repo.isDisabled  = false;
 		repo.isInstalled = false;
 		repo.currentPath = "";
 		repo.lastChecked = std::chrono::system_clock::time_point{};
@@ -376,18 +388,18 @@ namespace YLP
 			auto response = Utils::HttpRequest(host, path, {}, &zipPath, &repo.downloadProgress);
 			if (!response.success)
 			{
-				LOG_ERROR("Failed to download repository: {}", name);
+				LOG_ERROR("[GitMgr]: Failed to download repository: {}", name);
 				std::scoped_lock lock(m_Mutex);
 				repo.isDownloading = false;
 				repo.downloadProgress = 0.f;
 				return;
 			}
 
-			LOG_INFO("Downloaded repository ZIP to {}. Extracting...", zipPath.string());
+			LOG_INFO("[GitMgr]: Downloaded repository ZIP to {}. Extracting...", zipPath.string());
 
 			if (!Unzip(zipPath, extractDir))
 			{
-				LOG_ERROR("Failed to extract repository: {}", repo.name);
+				LOG_ERROR("[GitMgr]: Failed to extract repository: {}", repo.name);
 				std::scoped_lock lock(m_Mutex);
 				repo.isDownloading = false;
 				repo.downloadProgress = 0.f;
@@ -406,7 +418,7 @@ namespace YLP
 
 			if (repoRoot.empty())
 			{
-				LOG_ERROR("Could not locate extracted repository root folder in {}", extractDir.string());
+				LOG_ERROR("[GitMgr]: Could not locate extracted repository root folder in {}", extractDir.string());
 				std::scoped_lock lock(m_Mutex);
 				repo.isDownloading = false;
 				repo.downloadProgress = 0.f;
@@ -430,7 +442,7 @@ namespace YLP
 				}
 			}
 
-			LOG_INFO("Installed repository to {}. Performing cleanup...", installDir.string());
+			LOG_INFO("[GitMgr]: Installed repository to {}. Performing cleanup...", installDir.string());
 
 			IO::RemoveAll(extractDir);
 			IO::Remove(zipPath);
@@ -445,7 +457,7 @@ namespace YLP
 			}
 
 			SaveCache();
-			LOG_INFO("Done.");
+			LOG_INFO("[GitMgr]: Done.");
 		});
 	}
 

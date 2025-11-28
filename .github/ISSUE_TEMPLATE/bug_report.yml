@@ -34,7 +34,7 @@ body:
     label: Log
     description: |
       For a bug report to be valid, you need to include the launchpad's log.
-      The log can be found under `%AppData\YimLaunchpad\yimlaunchapd.log`.
+      The log can be found under `%AppData\YLP\cout.log`.
 
       Tip: To easily upload your log file, you can change the file extension from `.log` to `.txt` and drop it here or zip it then drag and drop it here. Alternatively, you can just open it and copy/paste its contents here *(not recommended)*.
     value: |
@@ -77,7 +77,7 @@ body:
 - type: checkboxes
   attributes:
     label: Version
-    description: We want to confirm that this issue exists on the latest version of YimLaunchpad. Not on a fork or a custom version.
+    description: We want to confirm that this issue exists on the latest version of YLP. Not on a fork or a custom version.
     options:
-      - label: I've confirmed the issue exists on the latest version of YimLaunchpad.
+      - label: I've confirmed the issue exists on the latest version of YLP.
         required: true

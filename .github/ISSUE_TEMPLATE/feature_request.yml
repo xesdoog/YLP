@@ -23,7 +23,7 @@ body:
   attributes:
     label: Reason
     description: Provide Reasoning
-    placeholder: Tell us why you want this added to YimLaunchpad.
+    placeholder: Tell us why you want this added to YLP.
   validations:
     required: true
 
