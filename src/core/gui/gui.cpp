@@ -29,37 +29,42 @@ namespace YLP
 		Fonts::Load(ImGui::GetIO());
 		SetupStyle();
 
-		AddTab(ICON_YIM, &YimMenuUI::Draw, "YimMenu");
-		AddTab(ICON_INJECT, &InjectorUI::Draw, "Injector");
-		AddTab(ICON_LUA, &LuaScriptsUI::Draw, "Lua Scripts");
-		AddTab(ICON_SETTINGS, DrawSettings, "Settings");
-		AddTab(ICON_HELP, DrawAboutSection, "About");
+		AddTab(eTabID::TAB_MAIN, ICON_YIM, &YimMenuUI::Draw, "YimMenu");
+		AddTab(eTabID::TAB_INJECTOR, ICON_INJECT, &InjectorUI::Draw, "Injector");
+		AddTab(eTabID::TAB_LUA, ICON_LUA, &LuaScriptsUI::Draw, "Lua Scripts");
+		AddTab(eTabID::TAB_SETTINGS, ICON_SETTINGS, DrawSettings, "Settings");
+		AddTab(eTabID::TAB_INFO, ICON_HELP, DrawAboutSection, "About");
 
-		m_ActiveTab = m_Tabs.front().get();
+		m_ActiveTab = m_Tabs[TabIDToIndex(eTabID::TAB_MAIN)].get(); // TODO (probably) serialize tab ID in DrawTabBar to persist last actibe tab across sessions
 	}
 
-	bool GUI::AddTabImpl(const std::string_view& name, GuiCallBack&& callback, std::optional<std::string_view> hint)
+	void GUI::AddTabImpl(const eTabID& id, const std::string_view& name, GuiCallBack&& callback, std::optional<std::string_view> hint)
 	{
-		for (const auto& tab : m_Tabs)
-		{
-			if (tab->m_Name == name)
-				return false;
-		}
+		size_t idx = TabIDToIndex(id);
+		if (idx >= m_Tabs.size())
+			return;
 
-		m_Tabs.push_back(std::make_shared<Tab>(Tab{name, std::move(callback), hint}));
-		return true;
+		if (m_Tabs[idx] != nullptr)
+			LOG_ERROR("[GUI]: Duplicate tab ID {}", static_cast<int>(id));
+
+		for (auto& t : m_Tabs)
+			if (t && t->m_Name == name)
+				LOG_ERROR("[GUI]: Duplicate tab name {}", name);
+
+		m_Tabs[idx] = std::make_unique<Tab>(Tab{ id, name, std::move(callback), hint });
 	}
 
-	void GUI::SetActiveTabImpl(const std::string_view& name)
+	void GUI::SetActiveTabImpl(const eTabID& id)
 	{
-		for (auto& tab : m_Tabs)
-		{
-			if (tab->m_Name == name)
-			{
-				m_ActiveTab = tab.get();
-				break;
-			}
-		}
+		if (id < eTabID::TAB_MAIN || id >= eTabID::__COUNT)
+			return;
+
+		if (m_ActiveTab && m_ActiveTab->m_ID == id)
+			return;
+
+		auto* tab = m_Tabs[TabIDToIndex(id)].get();
+		if (tab != nullptr)
+			m_ActiveTab = tab;
 	}
 
 	void GUI::DrawImpl()
@@ -71,7 +76,9 @@ namespace YLP
 		ImGui::Begin(
 		    "YLP",
 		    nullptr,
-		    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+		    ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoTitleBar);
 
 		ImGui::PushFont(Fonts::Regular);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f, 10.f));
@@ -103,7 +110,7 @@ namespace YLP
 
 	void GUI::DrawTabBarImpl()
 	{
-		int tabCount = static_cast<int>(m_Tabs.size());
+		size_t tabCount = m_Tabs.size();
 		if (tabCount == 0)
 			return;
 
@@ -126,7 +133,7 @@ namespace YLP
 		ImGui::PushFont(Fonts::Title);
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + startX);
 
-		for (int i = 0; i < tabCount; i++)
+		for (size_t i = 0; i < tabCount; i++)
 		{
 			auto& tab = *m_Tabs[i];
 			bool selected = (m_ActiveTab == &tab);

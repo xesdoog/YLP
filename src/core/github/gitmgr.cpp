@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -145,7 +145,7 @@ namespace YLP
 		{
 			Notifier::Add("Lua", "Updates are available for some of your installed scripts.", Notifier::Info, [this] {
 				SetSortMode(eSortMode::INSTALLED);
-				GUI::SetActiveTab(ICON_LUA);
+				GUI::SetActiveTab(GUI::eTabID::TAB_LUA);
 			});
 		}
 
@@ -175,6 +175,7 @@ namespace YLP
 		{
 			LOG_INFO("[GitMgr]: Fetching Lua repositories from https://github.com/YimMenu-Lua");
 			m_State = eLoadState::LOADING;
+			bool cacheLoaded = LoadCache();
 			std::wstring host = L"api.github.com";
 			std::wstring path = L"/orgs/" + std::wstring(m_OrgName.begin(), m_OrgName.end()) + L"/repos?per_page=100";
 			std::vector<std::wstring> headers = {
@@ -189,7 +190,7 @@ namespace YLP
 				if (response.status == 304)
 				{
 					LOG_DEBUG("[GitMgr]: Repository cache is still valid. Loading it...");
-					if (LoadCache())
+					if (cacheLoaded)
 					{
 						SortRepositories();
 						m_State = eLoadState::READY;
@@ -247,7 +248,10 @@ namespace YLP
 				script.currentPath = "";
 
 				if (script.isInstalled)
+				{
 					script.currentPath = script.isDisabled ? disabledPath : enabledPath;
+					script.lastChecked = m_Repos[name].lastChecked;
+				}
 
 				newRepos[name] = script;
 			}

@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -38,7 +38,6 @@ namespace YLP::Frontend
 			float regioinWidth = windowSize.x / 1.4f;
 			float regionHeight = windowSize.y / 1.4f;
 			float centerX = (ImGui::GetContentRegionAvail().x - regioinWidth) / 2;
-			float pidTextWidth = ImGui::CalcTextSize("[01234567890]").x;
 
 			ImGui::SetCursorPosX(centerX);
 			ImGui::SetNextItemWidth(regioinWidth);
@@ -51,51 +50,38 @@ namespace YLP::Frontend
 				if (!initialized)
 				{
 					processList.StartUpdating();
-					sortedProcessList = processes;
 					initialized = true;
 				}
 
-				ImGui::SetNextItemWidth(regioinWidth - 30);
-				ImGui::InputTextWithHint("##SearchBox", ICON_SEARCH, searchBuffer, IM_ARRAYSIZE(searchBuffer));
+				ImGui::SetNextItemWidth(regioinWidth);
+				ImGui::InputTextWithHint("##SearchBox", ICON_SEARCH, searchBuffer, sizeof(searchBuffer));
+				ImGui::Separator();
 
+				ImGui::BeginChild("##processList", ImVec2(0, 165));
+				ImGui::Spacing();
+				for (int i = 0; i < processes.size(); ++i)
 				{
-					std::scoped_lock m_Mutex;
-					sortedProcessList.clear();
-					for (auto& p : processes)
-					{
-						if (searchBuffer[0] == '\0' || Utils::StringToLower(std::string(p.m_Name)).find(Utils::StringToLower(searchBuffer)) != std::string::npos)
-							sortedProcessList.push_back(p);
-					}
-				}
+					auto p = processes[i];
+					if (p.m_Name.empty())
+						continue;
 
-				ImGui::Columns(2, nullptr, false);
-				ImGui::SetColumnWidth(0, regioinWidth - pidTextWidth);
-				ImGuiListClipper Clipper;
-				Clipper.Begin(sortedProcessList.size());
-				while (Clipper.Step())
-				{
-					for (int i = Clipper.DisplayStart; i < Clipper.DisplayEnd; ++i)
-					{
-						auto p = sortedProcessList[i];
-						if (p.m_Name.empty())
-							continue;
+					if (searchBuffer[0] != '\0' && Utils::StringToLower(p.m_Name).find(Utils::StringToLower(std::string(searchBuffer))) == std::string::npos)
+						continue;
 
-						ImGui::PushID(p.m_Pid);
-						if (ImGui::Selectable(std::format("{}", p.m_Name).c_str(),
-						        p.m_Pid == selectedProcess.m_Pid,
-						        0,
-						        ImVec2(regioinWidth - 30, 0.f)))
-						{
-							selectedProcess = p;
-							ImGui::CloseCurrentPopup();
-						}
-						ImGui::PopID();
-						ImGui::NextColumn();
-						ImGui::Text("[%u]", p.m_Pid);
-						ImGui::NextColumn();
+					if (Utils::StringToLower(p.m_Name).find("system") != std::string::npos)
+						continue;
+
+					ImGui::PushID(p.m_Pid);
+					if (ImGui::Selectable(std::format("{}", p.m_Name).c_str(), p.m_Pid == selectedProcess.m_Pid))
+					{
+						selectedProcess = p;
 					}
+					ImGui::PopID();
+
+					ImGui::SameLine(ImGui::GetContentRegionAvail().x - 62.0f);
+					ImGui::Text("[%u]", p.m_Pid);
 				}
-				ImGui::Columns(1);
+				ImGui::EndChild();
 				ImGui::EndCombo();
 			}
 			else if (initialized)
@@ -199,7 +185,6 @@ namespace YLP::Frontend
 
 	private:
 		static inline ProcessList processList;
-		static inline std::vector<ProcessEntry> sortedProcessList;
 		static inline ProcessEntry selectedProcess;
 		static inline DllInfo selectedDLL;
 		static inline bool initialized = false;

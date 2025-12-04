@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -31,6 +31,9 @@ namespace YLP::Frontend
 		~LuaScriptsUI() {};
 
 		using SortMode = GitHubManager::eSortMode;
+		
+		static inline char searchBuffer[64];
+
 		struct SortOption
 		{
 			const char* label;
@@ -58,7 +61,11 @@ namespace YLP::Frontend
 
 		static void DrawRepoCard(const Repository* repo)
 		{
-			ImGui::BeginChild(std::format("##repo_card_{}", repo->htmlUrl).c_str(), m_CardSize, ImGuiChildFlags_Border, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize);
+			ImGui::BeginChild(std::format("##repo_card_{}", 
+				repo->htmlUrl).c_str(), 
+				m_CardSize, 
+				ImGuiChildFlags_Border, 
+				ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize);
 
 			std::string date = Utils::FormatDateShort(repo->lastUpdate);
 			const char* desc = repo->description.empty() ? "No description." : repo->description.c_str();
@@ -68,8 +75,7 @@ namespace YLP::Frontend
 
 			const bool tileHovered = ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(),
 			                             ImVec2(ImGui::GetCursorScreenPos().x + titleSize.x + 5.f,
-			                                 ImGui::GetCursorScreenPos().y + titleSize.y + 5.f))
-			    && !m_SortPopupOpen;
+			                                 ImGui::GetCursorScreenPos().y + titleSize.y + 5.f)) && !m_SortPopupOpen;
 
 			const bool titleClicked = tileHovered && ImGui::IsMouseClicked(0);
 			const ImVec4 titleCol = tileHovered ? ImVec4(0.3f, 0.5f, 0.8f, 1.0f) : textCol;
@@ -191,9 +197,24 @@ namespace YLP::Frontend
 				});
 			}
 
+			ImGui::SameLine(0.0f, 60.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+			ImGui::SetNextItemWidth(std::max(200.0f, ImGui::GetWindowWidth() * 0.33f));
+			ImGui::InputTextWithHint("##searchBar", ICON_SEARCH, searchBuffer, sizeof(searchBuffer));
+			ImGui::PopStyleVar();
+
 			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
 			ImGui::TextColored(ImVec4(1.0f, 0.7568, 0.027f, 1.0f), ICON_WARNING);
-			ImGui::ToolTip("IMPORTANT: These repositories are for YimMenu V1 only (Legacy).", nullptr, false);
+			if (ImGui::IsItemHovered())
+			{
+				float width = std::max(380.0f, ImGui::GetWindowWidth() * 0.28f);
+				ImGui::SetNextWindowSize(ImVec2(width, 0));
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0f);
+				ImGui::BeginTooltip();
+				ImGui::InfoCallout(ImGui::ImCalloutType::Important, "These repositories are for YimMenu V1 only (Legacy).", width);
+				ImGui::EndTooltip();
+				ImGui::PopStyleVar();
+			}
 
 			ImGui::SetNextWindowScroll(ImVec2(m_CtrlBtnSize.x, 0));
 			if (ImGui::BeginPopup("sortscripts"))
@@ -218,6 +239,8 @@ namespace YLP::Frontend
 			ImGui::Separator();
 			ImGui::Spacing();
 
+			ImGui::SetNextWindowBgAlpha(0.0f);
+			ImGui::BeginChild("##repoCards");
 			switch (state)
 			{
 			case GitHubManager::eLoadState::NONE:
@@ -254,6 +277,9 @@ namespace YLP::Frontend
 				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
 				for (size_t i = 0; i < repos.size(); ++i)
 				{
+					if (searchBuffer[0] != '\0' && Utils::StringToLower(repos[i]->name).find(Utils::StringToLower(std::string(searchBuffer))) == std::string::npos)
+						continue;
+
 					DrawRepoCard(repos[i]);
 
 					if ((i + 1) % cardsPerRow != 0)
@@ -268,6 +294,7 @@ namespace YLP::Frontend
 				ImGui::TextColored(ImVec4(1, 0, 0, 1), "Failed to load repositories!");
 				break;
 			}
+			ImGui::EndChild();
 		}
 
 	private:

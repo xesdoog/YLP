@@ -37,14 +37,24 @@ namespace YLP
 		~GUI() noexcept = default;
 
 	public:
+		enum class eTabID : uint8_t
+		{
+			TAB_MAIN,
+			TAB_LUA,
+			TAB_INJECTOR,
+			TAB_SETTINGS,
+			TAB_INFO,
+			__COUNT,
+		};
+
 		static void Init()
 		{
 			GetInstance().InitImpl();
 		}
 
-		static bool AddTab(const std::string_view& name, GuiCallBack&& callback, std::optional<std::string_view> hint)
+		static void AddTab(const eTabID& id, const std::string_view& name, GuiCallBack&& callback, std::optional<std::string_view> hint)
 		{
-			return GetInstance().AddTabImpl(name, std::move(callback), hint);
+			GetInstance().AddTabImpl(id, name, std::move(callback), hint);
 		}
 
 		static void Draw()
@@ -72,9 +82,14 @@ namespace YLP
 			GetInstance().m_ShouldDisableUI = toggle;
 		}
 
-		static void SetActiveTab(const std::string_view& name)
+		static void SetActiveTab(const eTabID& id)
 		{
-			GetInstance().SetActiveTabImpl(name);
+			GetInstance().SetActiveTabImpl(id);
+		}
+
+		static constexpr size_t TabIDToIndex(eTabID id)
+		{
+			return static_cast<size_t>(id);
 		}
 
 		static void DrawAboutSection();
@@ -86,22 +101,21 @@ namespace YLP
 		void DrawTabBarImpl();
 		void DrawDebugConsoleImpl();
 		void DrawSettingsImpl();
-		void SetActiveTabImpl(const std::string_view& name);
-		bool AddTabImpl(const std::string_view& name, GuiCallBack&& callback, std::optional<std::string_view> hint);
+		void AddTabImpl(const eTabID& id, const std::string_view& name, GuiCallBack&& callback, std::optional<std::string_view> hint);
+		void SetActiveTabImpl(const eTabID& tabID);
 
 		struct Tab
 		{
-			std::string_view m_Name;
-			GuiCallBack m_Callback;
-			std::optional<std::string_view> m_Hint;
+			const eTabID m_ID;
+			const std::string_view m_Name;
+			const GuiCallBack m_Callback;
+			const std::optional<std::string_view> m_Hint;
 		};
 
-		int m_TabIndex = 0;
 		bool m_ShouldDisableUI = false;
-
 		Tab* m_ActiveTab = nullptr;
 		ImVec2 m_WindowSize;
 
-		std::vector<std::shared_ptr<Tab>> m_Tabs;
+		std::array<std::unique_ptr<Tab>, static_cast<size_t>(eTabID::__COUNT)> m_Tabs;
 	};
 }

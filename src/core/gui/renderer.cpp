@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -138,7 +138,7 @@ namespace YLP
 			LOG_WARN("Failed to load window icon!");
 
 
-		ShowWindow(m_HWND, SW_SHOWDEFAULT);
+		ShowWindow(m_HWND, Config().fullscreenWindow ? SW_SHOWMAXIMIZED : SW_SHOWDEFAULT);
 		UpdateWindow(m_HWND);
 
 		m_HDC = GetDC(m_HWND);
@@ -254,6 +254,8 @@ namespace YLP
 				cfg.windowHeight = rc.bottom - rc.top;
 				cfg.windowX = rc.left;
 				cfg.windowY = rc.top;
+
+				Config().fullscreenWindow = wp.showCmd == SW_SHOWMAXIMIZED;
 			}
 			DestroyWindow(hwnd);
 			return 0;

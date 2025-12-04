@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -50,6 +50,7 @@ namespace YLP
 			bool supportsV2 = false;
 			bool autoInject = false;
 			bool autoExit = false;
+			bool fullscreenWindow = false;
 
 			int themeIndex = 0;
 			int windowWidth = 680;
@@ -120,6 +121,7 @@ namespace YLP
 			j["supports_v2"] = m_Config.supportsV2;
 			j["auto_inject"] = m_Config.autoInject;
 			j["auto_exit"] = m_Config.autoExit;
+			j["full_screen"] = m_Config.fullscreenWindow;
 			j["theme_index"] = m_Config.themeIndex;
 			j["window_width"] = m_Config.windowWidth;
 			j["window_height"] = m_Config.windowHeight;
@@ -170,6 +172,7 @@ namespace YLP
 			m_Config.supportsV2 = j.value("supports_v2", false);
 			m_Config.autoInject = j.value("auto_inject", false);
 			m_Config.autoExit = j.value("auto_exit", false);
+			m_Config.fullscreenWindow = j.value("full_screen", false);
 			m_Config.themeIndex = j.value("theme_index", 0);
 			m_Config.windowX = j.value("window_x", -1);
 			m_Config.windowY = j.value("window_y", -1);
