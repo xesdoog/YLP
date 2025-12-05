@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -355,7 +355,7 @@ namespace YLP::PsUtils
 			LOG_WARN("[PsUtils]: VirtualFreeEx failed during cleanup with error {}", std::system_category().message(GetLastError()));
 		}
 
-		char buf[64];
+		char buf[265];
 		sprintf_s(buf, "Successfully injected %s into %s. Remote module handle: 0x%08X", dllPath.filename().string().c_str(), processName.data(), static_cast<unsigned int>(exitCode));
 		LOG_DEBUG("[PsUtils]: {}", buf);
 		return InjectResult::Ok();
