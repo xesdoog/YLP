@@ -115,6 +115,7 @@ namespace YLP::Frontend
 
 			ImGui::Separator();
 
+			// TODO: refactor this if-else spaghetti with a state switch
 			ImGui::BeginDisabled(!std::filesystem::exists(g_YimPath / "scripts") && repo->isDownloading);
 			if (!repo->isInstalled)
 			{
@@ -160,6 +161,16 @@ namespace YLP::Frontend
 						if (ImGui::Button(ICON_UPDATE))
 							GitHubManager::DownloadRepository(repo->name);
 						ImGui::ToolTip("Update");
+
+						ImGui::SameLine();
+						ImGui::PushFont(Fonts::Title);
+						auto icon = ICON_REFRESH;
+						float iconWidth = ImGui::CalcTextSize(icon).x;
+						float regionWidth = ImGui::GetContentRegionAvail().x;
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + regionWidth - iconWidth);
+						ImGui::TextColored(ImVec4(0.15, 0.35, 0.6, 1.0), icon);
+						ImGui::PopFont();
+						ImGui::ToolTip("Update Available!", Fonts::Regular, false);
 					}
 				}
 
