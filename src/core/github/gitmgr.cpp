@@ -101,8 +101,7 @@ namespace YLP
 				script.isDisabled  = false;
 				script.isInstalled = false;
 				script.currentPath = "";
-				script.lastChecked = std::chrono::system_clock::time_point{};
-
+				script.lastChecked = {};
 				should_update_cache = true;
 			}
 
@@ -224,6 +223,8 @@ namespace YLP
 
 			m_RepoETag = response.eTag;
 			std::map<std::string, Repository> newRepos;
+			std::map<std::string, Repository> oldRepos = m_Repos;
+
 			for (auto& repo : j)
 			{
 				std::string name = repo["name"];
@@ -245,12 +246,16 @@ namespace YLP
 				std::filesystem::path enabledPath = m_ScriptsPath / name;
 				std::filesystem::path disabledPath = m_ScriptsPath / "disabled" / name;
 				script.isDisabled = IO::Exists(disabledPath) && IO::HasLuaFiles(disabledPath) && !IO::Exists(enabledPath);
+
+				if (auto it = oldRepos.find(name); it != oldRepos.end())
+					script.lastChecked = it->second.lastChecked;
+
+				script.isPendingUpdate = script.is_outdated();
 				script.currentPath = "";
 
 				if (script.isInstalled)
 				{
 					script.currentPath = script.isDisabled ? disabledPath : enabledPath;
-					script.lastChecked = m_Repos[name].lastChecked;
 				}
 
 				newRepos[name] = script;
@@ -279,7 +284,6 @@ namespace YLP
 			try
 			{
 				FetchRepositories();
-				SaveCache();
 				m_State = eLoadState::READY;
 			}
 			catch (const std::exception& e)
@@ -456,8 +460,9 @@ namespace YLP
 				repo.downloadProgress = 0.f;
 				repo.isDownloading = false;
 				repo.isInstalled = true;
-				repo.lastChecked = std::chrono::system_clock::now();
 				repo.currentPath = m_ScriptsPath / name;
+				repo.lastChecked = std::chrono::system_clock::now();
+				repo.isPendingUpdate = repo.is_outdated();
 			}
 
 			SaveCache();

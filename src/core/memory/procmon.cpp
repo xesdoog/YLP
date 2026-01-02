@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -102,6 +102,9 @@ namespace YLP
 		return Utils::WaitUntil([&] {
 			HWND hwnd = PsUtils::GetHwndFromPid(m_Scanner->GetProcessID());
 			if (!IsWindow(hwnd))
+				return false;
+
+			if (!m_Scanner->IsModuleLoaded("socialclub.dll"))
 				return false;
 
 			std::this_thread::sleep_for(2s);
@@ -298,7 +301,7 @@ namespace YLP
 
 							auto& pointers = (m_MonitorMode == MonitorLegacy) ? g_Pointers.Legacy : g_Pointers.Enhanced;
 							pointers.Reset();
-							std::this_thread::sleep_for(5s);
+							std::this_thread::sleep_for(20s);
 						}
 					}
 				}

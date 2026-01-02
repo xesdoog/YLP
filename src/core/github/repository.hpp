@@ -1,4 +1,4 @@
-// YLP Project - GPL-3.0
+﻿// YLP Project - GPL-3.0
 // See LICENSE file or <https://www.gnu.org/licenses/> for details.
 
 
@@ -27,6 +27,9 @@ namespace YLP
 
 		bool is_outdated() const
 		{
+			if (!isInstalled)
+				return false;
+
 			if (lastChecked.time_since_epoch().count() == 0)
 				return false;
 
