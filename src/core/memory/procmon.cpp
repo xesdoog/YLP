@@ -99,16 +99,12 @@ namespace YLP
 
 	bool ProcessMonitor::WaitForGameReady(int timeoutMs)
 	{
-		auto& pointers = (m_MonitorMode == MonitorLegacy) ? g_Pointers.Legacy : g_Pointers.Enhanced;
-		return Utils::WaitUntil([&] {
+		return Utils::WaitUntil([&]() {
 			HWND hwnd = PsUtils::GetHwndFromPid(m_Scanner->GetProcessID());
 			if (!IsWindow(hwnd))
 				return false;
 
 			if (!m_Scanner->IsModuleLoaded("socialclub.dll"))
-				return false;
-
-			if (pointers.OnlineVersion.empty() && pointers.GameVersion.empty())
 				return false;
 
 			std::this_thread::sleep_for(2s);
@@ -181,9 +177,11 @@ namespace YLP
 			return false;
 		}
 
-		if (!pointers.OnlineVersion.empty() && !pointers.GameVersion.empty())
+		if (pointers.OnlineVersion && pointers.GameVersion)
 		{
-			if (!m_Menu->MatchGameVersion(pointers.OnlineVersion, pointers.GameVersion))
+			const std::string& gv = pointers.GameVersion.Read<std::string>();
+			const std::string& ov = pointers.OnlineVersion.Read<std::string>();
+			if (!gv.empty() && !ov.empty() && !m_Menu->MatchGameVersion(ov, gv))
 			{
 				LOG_WARN("[ProcMon]: Game version mismatch! Auto-inject aborted but you can still inject manually.");
 				Notifier::Add("ProcMon", "Game version mismatch! Auto-inject aborted but you can still inject manually.", Notifier::Warning);
