@@ -1,4 +1,4 @@
-// YLP Project - GPL-3.0
+﻿// YLP Project - GPL-3.0
 // See LICENSE file or <https://www.gnu.org/licenses/> for details.
 
 
@@ -13,8 +13,8 @@ namespace YLP
 	{
 		Pointer GameState{};
 		Pointer GameTime{};
-		std::string GameVersion{};
-		std::string OnlineVersion{};
+		Pointer GameVersion{};
+		Pointer OnlineVersion{};
 
 		void Reset() noexcept
 		{

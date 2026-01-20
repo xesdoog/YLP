@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -325,13 +325,15 @@ namespace YLP::Frontend
 			ImGui::PushFont(Fonts::Small);
 			DrawKeyValue("Status:", isRunning ? ICON_CHECKMARK : ICON_BLOCK, false, isRunning ? ImGreen : ImRed);
 
+			auto gv = pointers.GameVersion ? pointers.GameVersion.Read<std::string>() : "";
+			auto ov = pointers.OnlineVersion ? pointers.OnlineVersion.Read<std::string>() : "";
 			DrawKeyValue("Version:",
-			    std::format("{} (Online {})",
-			        pointers.GameVersion.empty() ? "?" : pointers.GameVersion,
-			        pointers.OnlineVersion.empty() ? "?" : pointers.OnlineVersion));
+			    std::format("{} (Online: {})",
+			        gv.empty() ? "Unknown" : gv,
+			        ov.empty() ? "Unknown" : ov));
 
 			auto runtime = (isRunning && pointers.GameTime) ? pointers.GameTime.Read<int32_t>() : 0;
-			DrawKeyValue("Runtime:", Utils::Int32ToTime(runtime / 1000));
+			DrawKeyValue("Runtime:", runtime == 0 ? "Unknown" : Utils::Int32ToTime(runtime / 1000));
 
 			auto baseAddress = monitor->GetBaseAddress();
 			DrawKeyValue("Module Base:", std::format("0x{:X}", baseAddress), baseAddress != 0);

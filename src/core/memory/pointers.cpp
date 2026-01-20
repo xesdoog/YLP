@@ -19,13 +19,11 @@ namespace YLP
 		    [this](ProcessScanner& scanner) {
 			    {
 				    auto gvov = scanner.FindPattern("8B C3 33 D2 C6 44 24 20", "Game Version");
-				    if (!gvov)
+				    if (gvov)
 				    {
-					    Legacy.GameVersion = "Unknown";
-					    Legacy.OnlineVersion = "Unknown";
+					    Legacy.GameVersion = gvov.Add(0x24).Rip();
+					    Legacy.OnlineVersion = gvov.Add(0x24).Rip().Add(0x20);
 				    }
-				    Legacy.GameVersion = gvov.Add(0x24).Rip().Read<std::string>();
-				    Legacy.OnlineVersion = gvov.Add(0x24).Rip().Add(0x20).Read<std::string>();
 			    }
 			    {
 				    auto gs = scanner.FindPattern("83 3D ? ? ? ? ? 75 17 8B 43 20 25", "Game State");
@@ -47,13 +45,11 @@ namespace YLP
 		    [this](ProcessScanner& scanner) {
 			    {
 				    auto gvov = scanner.FindPattern("4C 8D 0D ? ? ? ? 48 8D 5C 24 ? 48 89 D9 48 89 FA", "Game Version");
-				    if (!gvov)
+				    if (gvov)
 				    {
-					    Enhanced.GameVersion = "Unknown";
-					    Enhanced.OnlineVersion = "Unknown";
+					    Enhanced.GameVersion = gvov.Add(0x3).Rip();
+					    Enhanced.OnlineVersion = gvov.Add(0x47).Add(3).Rip();
 				    }
-					Enhanced.GameVersion = gvov.Add(0x3).Rip().Read<std::string>();
-					Enhanced.OnlineVersion = gvov.Add(0x47).Add(3).Rip().Read<std::string>();
 			    }
 			    {
 				    auto glt = scanner.FindPattern("3B 2D ? ? ? ? 76 ? 89 D9", "Game Time");
