@@ -108,6 +108,7 @@ namespace YLP::Frontend
 						Notifier::Add("YLP", msg, Notifier::Warning);
 						Config().gtaExePaths.erase(menu.m_TargetProcess);
 						menu.m_ExePath.clear();
+						break;
 					}
 					else
 					{
@@ -152,13 +153,7 @@ namespace YLP::Frontend
 
 			IO::Open(cmd);
 
-			if (!monitor->WaitForGameReady(35000))
-			{
-				std::string msg = "The game process was not detected after launching. Is it taking too long to start?";
-				LOG_WARN(msg);
-				Notifier::Add("YLP", msg, Notifier::Warning);
-			}
-
+			monitor->WaitForGameReady(6e4);
 			m_AttemptedGameLaunch = false;
 		}
 
@@ -310,15 +305,16 @@ namespace YLP::Frontend
 			ImGui::EndDisabled();
 			if (!isRunning)
 			{
+				const char* tooltip = "Play";
 				if (m_LauncherIndex == 3)
 				{
 					if (menu.m_ExePath.empty())
-						ImGui::ToolTip("Browse for game executable (Will automatically start when a valid exe is selected).");
+						tooltip = "Browse for game executable (Will automatically start when a valid executable is selected).";
 					else
-						ImGui::ToolTip("Use the last known executable path (SHIFT + Left Click to browse again).");
+						tooltip = "Use the last known executable path or press SHIFT + Left Click to browse again.";
 				}
-				else
-					ImGui::ToolTip("Play");
+
+				ImGui::ToolTip(tooltip);
 			}
 
 			ImGui::Spacing();
@@ -327,13 +323,11 @@ namespace YLP::Frontend
 
 			auto gv = pointers.GameVersion ? pointers.GameVersion.Read<std::string>() : "";
 			auto ov = pointers.OnlineVersion ? pointers.OnlineVersion.Read<std::string>() : "";
-			DrawKeyValue("Version:",
-			    std::format("{} (Online: {})",
-			        gv.empty() ? "Unknown" : gv,
-			        ov.empty() ? "Unknown" : ov));
+			DrawKeyValue("Version:", std::format("{} (Online: {})", gv.empty() ? "?" : gv, ov.empty() ? "?" : ov));
 
 			auto runtime = (isRunning && pointers.GameTime) ? pointers.GameTime.Read<int32_t>() : 0;
-			DrawKeyValue("Runtime:", runtime == 0 ? "Unknown" : Utils::Int32ToTime(runtime / 1000));
+			if (runtime > 0)
+				DrawKeyValue("Play Time:", Utils::Int32ToTime(runtime / 1000));
 
 			auto baseAddress = monitor->GetBaseAddress();
 			DrawKeyValue("Module Base:", std::format("0x{:X}", baseAddress), baseAddress != 0);
@@ -421,7 +415,7 @@ namespace YLP::Frontend
 		static inline ImVec4 ImGreen = ImVec4(0, 1, 0, 1);
 		static inline ImVec4 ImBlue = ImVec4(0, 0, 1, 1);
 		static inline ImVec2 ButtonBig = ImVec2(150, 37);
-		static inline int m_LauncherIndex;
+		static inline int m_LauncherIndex = 0;
 		static inline bool m_AttemptedGameLaunch = false;
 
 		static inline const char* m_Launchers[] = {
