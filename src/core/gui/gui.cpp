@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -375,9 +375,8 @@ namespace YLP
 	{
 		auto version = YLPUpdater.GetLocalVersion();
 		ImGui::PushFont(Fonts::Small);
-		ImGui::Text("YLP v%s", version.ToString().c_str());
+		ImGui::TextDisabled("v%s", version.ToString().c_str());
 		ImGui::PopFont();
-		ImGui::Separator();
 
 		ImGui::TitleText("General", true);
 		auto updateState = YLPUpdater.GetState();
@@ -526,13 +525,11 @@ YLP was built on three simple principles:
 		        "Respect: YLP never modifies, redistributes, or monetizes features or third-party content."});
 
 		ImGui::InfoCallout(ImGui::ImCalloutType::Important,
-		    R"(
-YLP is provided "as is", without any warranty of any kind, express or implied.
+		    R"(YLP is provided "as is", without any warranty of any kind, express or implied.
 The author shall not be held liable for any damages, data loss, or issues arising from the use or misuse of this software.
 )");
 		ImGui::InfoCallout(ImGui::ImCalloutType::Warning,
-		    R"(
-Please be cautious when downloading tools or mods from the internet.
+		    R"(Please be cautious when downloading tools or mods from the internet.
 Only download from official repositories or verified community sources and never disable your anti-virus. If you trust the source, whitelist it in your anti-virus settings.
 Open-source projects like YLP allow you to inspect the code yourself; a core value that protects both your system and your data.
 )");
@@ -540,8 +537,6 @@ Open-source projects like YLP allow you to inspect the code yourself; a core val
 		    R"(
 YLP makes use of several open-source libraries and assets that are licensed under their respective terms.
 Full license texts and credits are available in the Third-Party Licenses document in the source repository.
-
-We extend our gratitude to the open-source community for their incredible contributions.
 )");
 
 		////////////////////////////////////////////////////////

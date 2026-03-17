@@ -1,4 +1,4 @@
-// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
+﻿// Copyright (C) 2025 SAMURAI (xesdoog) & Contributors
 // This file is part of YLP.
 //
 // YLP is free software: you can redistribute it and/or modify
@@ -156,15 +156,16 @@ namespace ImGui
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str(), nullptr, false, wrapWidth);
-		float panelHeight = textSize.y + 30 + ImGui::GetStyle().FramePadding.y * 2;
+		float panelHeight = textSize.y + 30 + (ImGui::GetStyle().WindowPadding.y * 2);
 		float barWidth = 5.0f;
 
-		drawList->AddRectFilled(ImVec2(pos.x, pos.y + 5), ImVec2(pos.x + barWidth, pos.y + panelHeight), ImColor(accentColor));
+		drawList->AddRectFilled(pos, ImVec2(pos.x + barWidth, pos.y + panelHeight), ImColor(accentColor));
 		ImGui::SetCursorScreenPos(ImVec2(pos.x + barWidth, pos.y));
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.f);
+		ImGui::SetNextWindowBgAlpha(0.1f);
 		ImGui::BeginChild(("##panel_" + std::to_string((int)type) + "_" + std::to_string(window->GetID(text.c_str()))).c_str(),
 		    ImVec2(0, panelHeight),
-		    false,
+		    ImGuiChildFlags_None,
 		    ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_AlwaysUseWindowPadding);
 
 		ImGui::PushFont(Fonts::Bold);

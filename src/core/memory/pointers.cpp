@@ -26,9 +26,9 @@ namespace YLP
 				    }
 			    }
 			    {
-				    auto gs = scanner.FindPattern("83 3D ? ? ? ? ? 75 17 8B 43 20 25", "Game State");
+				    auto gs = scanner.FindPattern("81 39 5D 6D FF AF 75 20", "Game State");
 				    if (gs)
-					    Legacy.GameState = gs.Add(0x2).Rip().Add(0x1);
+					    Legacy.GameState = gs.Add(0xA).Rip().Add(0x1);
 			    }
 			    {
 				    auto glt = scanner.FindPattern("8B 05 ? ? ? ? 89 ? 48 8D 4D C8", "Game Time");
