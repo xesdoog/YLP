@@ -192,41 +192,13 @@ jobs:
             });
 
             let changelog = "";
-
             const mergedPRs = pulls.filter(pr => pr.merged_at && new Date(pr.merged_at) > lastTagDate);
-            const extractField = (body, fieldName) => {
-              const regex = new RegExp(`${fieldName}:\\s*([\\s\\S]*?)(?=\\n\\w+:|$)`, 'm');
-              const match = body.match(regex);
-              if (!match)
-                return "";
-
-              return match[1].trim();
-            };
 
             if (mergedPRs.length > 0) {
               for (const pr of mergedPRs) {
                 changelog += `## PR #${pr.number}: ${pr.title}\n`;
                 const body = pr.body || "";
-
-                const sections = {
-                  "### 🚀 Features": extractField(body, "feature_text"),
-                  "### 🔧 Fixes": extractField(body, "fix_text"),
-                  "### 🧩 Refactors": extractField(body, "refactor_text"),
-                  "### 📝 Documentation": extractField(body, "docs_text"),
-                  "### 🧹 Chores": extractField(body, "chore_text")
-                };
-
-                for (const [heading, content] of Object.entries(sections)) {
-                  if (content) {
-                    const lines = content.split('\n').map(line => line.trim().replace(/^-\s*/, ''));
-                    changelog += heading + "\n\n";
-                    for (const line of lines) {
-                      if (line)
-                        changelog += `- ${line}\n`;
-                    }
-                    changelog += "\n";
-                  }
-                }
+                changelog += `${body.trim()}\n\n`;
               }
             } else {
               const compared = await github.rest.repos.compareCommits({
