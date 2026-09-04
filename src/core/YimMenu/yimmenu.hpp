@@ -68,7 +68,7 @@ namespace YLP
 			Notifier::Add(title, msg, level);
 			
 			if (log)
-				Logger::Log(static_cast<Logger::eLogLevel>(level), title + ": " + msg);
+				Logger::Log(static_cast<eLogLevel>(level), title + ": " + msg);
 		}
 
 		bool SanityCheck()

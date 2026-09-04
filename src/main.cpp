@@ -15,14 +15,15 @@
 // along with YLP.  If not, see <https://www.gnu.org/licenses/>.
 
 
-#include <common.hpp>
-#include <core/updater.hpp>
-#include <core/gui/renderer.hpp>
-#include <core/gui/msgbox.hpp>
-#include <core/gui/notifier.hpp>
-#include <core/github/gitmgr.hpp>
-#include <core/YimMenu/yimmenu.hpp>
-#include <core/memory/pointers.hpp>
+#include "common.hpp"
+#include "core/updater.hpp"
+#include "core/gui/renderer.hpp"
+#include "core/gui/msgbox.hpp"
+#include "core/gui/notifier.hpp"
+#include "core/github/gitmgr.hpp"
+#include "core/YimMenu/yimmenu.hpp"
+#include "core/memory/pointers.hpp"
+#include "core/lua_scripting/lua_mgr.hpp"
 
 
 using namespace YLP;
@@ -37,7 +38,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			SetForegroundWindow(hExHWND);
 
 		MsgBox::Error(L"Error", L"YLP is already running!");
-		return 1;
+		return 0;
 	}
 
 	auto appdata = std::filesystem::path(std::getenv("appdata"));
@@ -47,10 +48,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	g_YimV2Path = appdata / "YimMenuV2";
 
 	if (!std::filesystem::exists(g_ProjectPath))
-		std::filesystem::create_directories(g_ProjectPath);
+		std::filesystem::create_directory(g_ProjectPath);
 
-	Logger::Init(g_ProjectPath / "cout.log");
 	Settings::Init(g_ProjectPath / "settings.json");
+	Logger::Init(g_ProjectPath / "cout.log", Config().externalConsole);
 	ThreadManager::Init(4);
 
 	if (!std::filesystem::exists(g_YimPath))
@@ -69,8 +70,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	GitHubManager::Init();
 	YimMenuHandler::Init();
-
 	g_Pointers.Init();
+	LuaJIT::LuaManager::Init(g_ProjectPath / "Plugins");
 
 	ThreadManager::RunDelayed([] {
 		YLPUpdater.Check();
@@ -92,6 +93,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	g_Running = false;
 	Renderer::Destroy();
+	Logger::Destroy();
 	ThreadManager::Shutdown();
 	Settings::Destroy();
 

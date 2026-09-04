@@ -58,6 +58,28 @@ namespace YLP
 			}
 		}
 
+		template<typename T>
+		inline void Write(T arg, size_t maxLength = 64) const
+		{
+			SIZE_T bytesWritten = 0;
+			if constexpr (std::is_same_v<T, std::string>)
+			{
+				WriteProcessMemory(m_ProcessHandle,
+				        reinterpret_cast<LPVOID>(m_Address),
+				        arg.data(),
+				        maxLength - 1,
+				        &bytesWritten);
+			}
+			else
+			{
+				WriteProcessMemory(m_ProcessHandle,
+				    reinterpret_cast<LPVOID>(m_Address),
+				    &arg,
+				    sizeof(arg),
+				    &bytesWritten);
+			}
+		}
+
 		inline Pointer Add(int32_t offset)
 		{
 			return Pointer(m_ProcessHandle, m_Address + offset);
@@ -72,6 +94,16 @@ namespace YLP
 		{
 			int32_t rel = Read<int32_t>();
 			return Pointer(m_ProcessHandle, m_Address + rel + 4);
+		}
+
+		inline Pointer Dereference()
+		{
+			return Pointer(m_ProcessHandle, Read<uintptr_t>());
+		}
+
+		inline uintptr_t GetAddress() const noexcept
+		{
+			return m_Address;
 		}
 
 		explicit operator bool() const

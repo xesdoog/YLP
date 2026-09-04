@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "gui/msgbox.hpp"
+
 
 namespace YLP
 {
@@ -54,13 +56,13 @@ namespace YLP
 
 		struct Config
 		{
-			uint8_t autoMonitorFlags = MonitorNone;
 			bool internalConsole = false;
 			bool externalConsole = false;
 			bool autoExit = false;
 			bool restoreLastTab = false;
 			bool fullscreenWindow = false;
 			bool muteNotifs = false;
+			bool enableScripting = false;
 
 			int lastTabIndex = 0;
 			int themeIndex = 0;
@@ -70,12 +72,21 @@ namespace YLP
 			int windowY = -1;
 			int launcherIndex = -1;
 			int mainWindowIndex = 0;
+
+			uint8_t autoMonitorFlags = MonitorNone;
 			uint8_t luaRepoSortMode = eLuaRepoSortMode::COMMIT;
+
+			std::string uuid{};
 
 			std::vector<DllInfo> savedDlls{};
 			std::pair<std::string, std::filesystem::path> savedTheme{};
 			std::unordered_map<std::string, std::filesystem::path> gtaExePaths{}; // exeName -> path
-		};
+
+			void Reset()
+			{
+				*this = {};
+			}
+		} m_Config;
 
 		static void Init(const std::filesystem::path& path)
 		{
@@ -86,8 +97,6 @@ namespace YLP
 		{
 			GetInstance().SaveImpl();
 		}
-
-		Config m_Config;
 
 		static void Save()
 		{
@@ -116,14 +125,42 @@ namespace YLP
 		}
 
 	private:
-		std::filesystem::path m_FilePath;
+		fs::path m_FilePath{};
 
-		void InitImpl(const std::filesystem::path& path)
+		void InitImpl(const fs::path& path)
 		{
 			m_FilePath = path;
-			if (!IO::Exists(path))
+			if (!fs::exists(path))
 				Save();
 			Load();
+
+			fs::path parent = path.parent_path();
+			std::error_code ec{};
+			if (fs::exists(parent / "ylp.id", ec))
+			{
+				std::ifstream f(parent / "ylp.id");
+				if (!f.is_open())
+					return;
+
+				std::string uuid;
+				std::getline(f, uuid);
+				if (m_Config.uuid == uuid)
+					return;
+
+				std::string msg = "Your user settings seem to have been tampered with. Lua scripting has been disabled for your safety.";
+				MsgBox::Warn("Config Mismatch!", msg);
+				LOG_WARN(msg);
+				m_Config.enableScripting = false;
+			}
+
+			m_Config.enableScripting = false;
+			std::ofstream f(parent / "ylp.id");
+			if (!f.is_open())
+				return;
+
+			std::string uuid = Utils::GenerateUUID();
+			f << uuid;
+			m_Config.uuid = uuid;
 		}
 
 		void SaveImpl()
@@ -145,6 +182,8 @@ namespace YLP
 			j["window_height"] = m_Config.windowHeight;
 			j["window_x"] = m_Config.windowX;
 			j["window_y"] = m_Config.windowY;
+			j["enable_scripting"] = m_Config.enableScripting;
+			j["uuid"] = m_Config.uuid;
 
 			for (const auto& dll : m_Config.savedDlls)
 				j["saved_dlls"].push_back({
@@ -202,6 +241,8 @@ namespace YLP
 			m_Config.windowY = j.value("window_y", -1);
 			m_Config.windowWidth = j.value("window_width", 680);
 			m_Config.windowHeight = j.value("window_height", 720);
+			m_Config.enableScripting = j.value("enable_scripting", false);
+			m_Config.uuid = j.value("uuid", "");
 
 			json& savedDlls = j["saved_dlls"];
 			if (!savedDlls.is_null() && savedDlls.is_array())
@@ -243,7 +284,7 @@ namespace YLP
 
 		void ResetImpl()
 		{
-			m_Config = Config{};
+			m_Config.Reset();
 			SaveImpl();
 		}
 	};

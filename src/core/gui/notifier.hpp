@@ -44,17 +44,23 @@ namespace YLP
 			std::string m_Title;
 			std::string m_Message;
 			std::string m_ChildID;
+
 			std::chrono::system_clock::time_point m_TimeCreated;
+
 			eNotificationLevel m_Level;
 			NotificationCallback m_Callback;
+
 			bool m_Read = false;
 			const char* m_Icon;
+
 			ImVec4 m_Color;
 
 			void Dismiss();
 			void Invoke();
-			void Draw(float xLeft, float contentW, ImDrawList* drawList);
+			bool Draw(float xLeft, float contentW, ImDrawList* drawList);
 			float ComputeHeight() const noexcept;
+
+			float m_GlobalAlpha = 1.0f;
 		};
 
 		class Toast
@@ -67,6 +73,9 @@ namespace YLP
 
 			bool HasExpired() const noexcept
 			{
+				if (m_IsHovered)
+					return false;
+
 				bool cond = false;
 				if (auto n = m_Notif.lock())
 				{
@@ -101,9 +110,15 @@ namespace YLP
 				}
 			}
 
+			void SetIsHovered(bool state)
+			{
+				m_IsHovered = state;
+			}
+
 		private:
 			std::weak_ptr<Notification> m_Notif;
 			bool m_Expired{false};
+			bool m_IsHovered{false};
 		};
 
 	private:
@@ -113,10 +128,11 @@ namespace YLP
 		    NotificationCallback callback);
 
 		void AddToastImpl(const std::shared_ptr<Notification>& notif);
-		void DrawToastImpl();
+		void DrawToastsImpl();
 		void DrawImpl();
 		void ClearReadImpl();
-		void PlaySoundQueueImpl();
+		void Flush();
+		void PlaySoundQueue();
 
 	public:
 		static void Add(const std::string& title,
@@ -137,15 +153,14 @@ namespace YLP
 			GetInstance().DrawImpl();
 		}
 
-		static void DrawToast()
+		static void DrawToasts()
 		{
-			GetInstance().DrawToastImpl();
+			GetInstance().DrawToastsImpl();
 		}
 
-
-		static void PlaySoundQueue()
+		static void ClearRead()
 		{
-			GetInstance().PlaySoundQueueImpl();
+			GetInstance().ClearReadImpl();
 		}
 
 		static void Toggle()
@@ -161,11 +176,6 @@ namespace YLP
 		static void ToggleMute()
 		{
 			Config().muteNotifs ^= true;
-		}
-
-		static void ClearRead()
-		{
-			GetInstance().ClearReadImpl();
 		}
 
 		static const bool IsOpen() noexcept
@@ -230,9 +240,12 @@ namespace YLP
 		std::chrono::steady_clock::time_point m_LastAudioQueueTime;
 
 		bool m_IsOpen{false};
-		bool m_ShouldClose{false};
 		bool m_IsSnoozed{false};
+		bool m_ShouldClose{false};
+		bool m_ShouldFlush{false};
 		bool m_Viewed{true};
+
+		std::chrono::time_point<std::chrono::system_clock> m_LastFlushed{};
 
 		ImVec2 m_WindowSize{};
 		ImVec2 m_WindowPos{};

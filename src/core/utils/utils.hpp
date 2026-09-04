@@ -20,6 +20,7 @@
 #include <bcrypt.h>
 #include <codecvt>
 #include <chrono>
+#include <random>
 #include <regex>
 #include <thread>
 #include <winhttp.h>
@@ -59,7 +60,10 @@ namespace YLP::Utils
 	std::string FormatRelativeDate(const std::string& iso);
 	std::string FormatDate(const std::string& iso);
 	std::string WideToUTF8(const std::wstring& wstr);
+	std::string GenerateUUID();
+
 	std::wstring UTF8ToWide(const std::string& str);
+
 	std::optional<uint8_t> CharToHex(char const c);
 
 	IconData HICONToRGBA(HICON hIcon); // useless

@@ -48,6 +48,7 @@
 namespace YLP
 {
 	using namespace std::chrono_literals;
+	namespace fs = std::filesystem;
 
 	extern HINSTANCE g_Instance;
 	extern HWND g_Hwnd;
@@ -83,13 +84,13 @@ namespace YLP
 
 
 #include "core/singleton.hpp"
-#include "core/logger.hpp"
+#include "core/logging/logger.hpp"
 
-
-#define LOG_INFO(fmt, ...) Logger::Log(Logger::eLogLevel::Info, fmt, ##__VA_ARGS__)
-#define LOG_WARN(fmt, ...) Logger::Log(Logger::eLogLevel::Warn, fmt, ##__VA_ARGS__)
-#define LOG_ERROR(fmt, ...) Logger::Log(Logger::eLogLevel::Error, fmt, ##__VA_ARGS__)
-#define LOG_DEBUG(fmt, ...) Logger::Log(Logger::eLogLevel::Debug, fmt, ##__VA_ARGS__)                                                                  \
+#define LOG(level, ...) Logger::Log(level, std::source_location::current(), ##__VA_ARGS__)
+#define LOG_INFO(fmt, ...) LOG(eLogLevel::Info, fmt, ##__VA_ARGS__)
+#define LOG_WARN(fmt, ...) LOG(eLogLevel::Warn, fmt, ##__VA_ARGS__)
+#define LOG_ERROR(fmt, ...) LOG(eLogLevel::Error, fmt, ##__VA_ARGS__)
+#define LOG_DEBUG(fmt, ...) LOG(eLogLevel::Debug, fmt, ##__VA_ARGS__)                                                                  \
 
 
 #include "core/utils/utils.hpp"

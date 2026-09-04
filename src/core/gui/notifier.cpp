@@ -69,14 +69,41 @@ namespace YLP
 
 	void Notifier::ClearReadImpl()
 	{
+		std::scoped_lock lock(m_Mutex);
 		std::erase_if(m_Notifications, [](std::shared_ptr<Notification> n) {
 			return n->m_Read;
 		});
-
 		m_Viewed = true;
 	}
 
-	void Notifier::PlaySoundQueueImpl()
+	void Notifier::Flush()
+	{
+		if (!m_ShouldFlush)
+			return;
+
+		if (m_Notifications.empty())
+		{
+			m_ShouldFlush = false;
+			return;
+		}
+
+		float deltaTime = ImGui::GetIO().DeltaTime;
+		for (auto& n : m_Notifications)
+		{
+			auto now = std::chrono::system_clock::now();
+			if (now - m_LastFlushed < 33ms)
+				continue;
+
+			n->m_GlobalAlpha -= deltaTime * 1.20f;
+			if (n->m_GlobalAlpha <= 0.1f)
+			{
+				n->Dismiss();
+				m_LastFlushed = now;
+			}
+		}
+	}
+
+	void Notifier::PlaySoundQueue()
 	{
 		if (IsMuted() || m_IsSnoozed)
 			return;
@@ -85,7 +112,7 @@ namespace YLP
 		if (now - m_LastAudioQueueTime < 5s)
 			return;
 
-		if (PlaySound(reinterpret_cast<const char*>(notif_audio_data), NULL, SND_MEMORY | SND_ASYNC))
+		if (PlaySound(reinterpret_cast<const char*>(notif_audio_data), nullptr, SND_MEMORY | SND_ASYNC))
 			m_LastAudioQueueTime = now;
 	}
 
@@ -117,9 +144,13 @@ namespace YLP
 
 		ImGui::SetNextWindowPos(popupPos);
 		ImGui::SetNextWindowBgAlpha(0.f);
-		ImGui::SetNextWindowSize(ImVec2(popupSize.x, popupHeight));
+		ImGui::SetNextWindowSize(ImVec2(popupSize.x, 0));
 		if (!ImGui::BeginPopup("notifierPopup",
-		        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground))
+			ImGuiWindowFlags_NoTitleBar
+			| ImGuiWindowFlags_AlwaysAutoResize
+			| ImGuiWindowFlags_NoMove
+			| ImGuiWindowFlags_NoResize
+			| ImGuiWindowFlags_NoBackground))
 		{
 			m_IsOpen = false;
 			return;
@@ -142,9 +173,9 @@ namespace YLP
 		ImVec2 winSize = ImGui::GetWindowSize();
 		ImVec2 winTL = winPos;
 		ImVec2 winBR = ImVec2(winPos.x + winSize.x, winPos.y + winSize.y);
-		const float popupRounding = style.ChildRounding;
-		const ImU32 popupBg = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-		const ImU32 popupBorder = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_Border));
+		const float popupRounding = style.PopupRounding;
+		const ImU32 popupBg = ImGui::GetColorU32(ImGuiCol_PopupBg);
+		const ImU32 popupBorder = ImGui::GetColorU32(ImGuiCol_Border);
 
 		for (int i = 0; i < 4; ++i)
 		{
@@ -156,49 +187,42 @@ namespace YLP
 		draw->AddRectFilled(winTL, winBR, popupBg, popupRounding);
 		draw->AddRect(winTL, winBR, popupBorder, popupRounding, 0, 1.0f);
 
-		if (!m_Notifications.empty())
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 12.0f);
+		ImGui::TitleText("Notifications");
+
+		bool muted = IsMuted();
+		bool empty = m_Notifications.empty();
+
+		ImGui::SameLine();
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 120.0f);
+		if (ImGui::SelectableLabel(muted ? ICON_MD_VOLUME_MUTE : ICON_MD_VOLUME_UP, false))
+			ToggleMute();
+		ImGui::ToolTip(muted ? "Unmute" : "Mute");
+
+		ImGui::SameLine();
+		if (ImGui::SelectableLabel(m_IsSnoozed ? ICON_MD_NOTIFICATIONS_PAUSED : ICON_MD_NOTIFICATIONS_ACTIVE, false))
+			ToggleSnooze();
+		ImGui::ToolTip(m_IsSnoozed ? "Enable toast notifications." : "Snooze toasts notifications.");
+
+		ImGui::SameLine();
+		ImGui::BeginDisabled(empty);
+		if (ImGui::SelectableLabel(ICON_MD_CLEAR_ALL, false))
+			m_ShouldFlush = true;
+		ImGui::ToolTip("Clear All Notifications");
+		ImGui::EndDisabled();
+
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		if (empty)
 		{
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 12.0f);
-			ImGui::TitleText("Notifications");
-	
-			ImGui::SameLine();
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 120.0f);
-			bool muted = IsMuted();
-			if (ImGui::SelectableLabel(muted ? ICON_MD_VOLUME_MUTE : ICON_MD_VOLUME_UP, false))
-				ToggleMute();
-			ImGui::ToolTip(muted ? "Unmute" : "Mute");
-			
-			ImGui::SameLine();
-			if (ImGui::SelectableLabel(m_IsSnoozed ? ICON_MD_NOTIFICATIONS_PAUSED : ICON_MD_NOTIFICATIONS_ACTIVE, false))
-				ToggleSnooze();
-			ImGui::ToolTip(m_IsSnoozed ? "Enable toast notifications." : "Snooze toasts notifications.");
-
-			ImGui::SameLine();
-			if (ImGui::SelectableLabel(ICON_MD_CLEAR_ALL, false))
-			{
-				std::scoped_lock lock(m_Mutex);
-				m_Notifications.clear();
-			}
-			ImGui::ToolTip("Clear All Notifications");
-
-			ImGui::Separator();
-			ImGui::Spacing();
+			ImGui::TextDisabled("Wow! Such empty!");
 		}
-
+		else
 		{
-			std::scoped_lock lock(m_Mutex);
-
-			if (m_Notifications.empty())
-			{
-				ImGui::TextDisabled("No notifications.");
-				ImGui::EndPopup();
-				return;
-			}
-
 			float yCursor = ImGui::GetCursorScreenPos().y;
 			float xLeft = ImGui::GetCursorScreenPos().x;
 			float contentW = ImGui::GetContentRegionAvail().x;
-
 			for (auto& n : m_Notifications)
 			{
 				if (n->m_Read)
@@ -207,12 +231,14 @@ namespace YLP
 				n->Draw(xLeft, contentW, draw);
 				ImGui::Dummy(ImVec2(1, 1));
 			}
-			ClearReadImpl();
+
+			ClearRead();
 		}
+		Flush();
 		ImGui::EndPopup();
 	}
 
-	void Notifier::DrawToastImpl()
+	void Notifier::DrawToastsImpl()
 	{
 		if (m_Toasts.empty() || m_IsSnoozed)
 			return;
@@ -236,20 +262,23 @@ namespace YLP
 		{
 			ImVec2 toastPos(io.DisplaySize.x - maxWidth - margin, margin * 4);
 			ImGui::SetCursorScreenPos(toastPos);
-			notif->Draw(toastPos.x, maxWidth, drawList);
+			bool isHovered = notif->Draw(toastPos.x, maxWidth, drawList);
+			toast.SetIsHovered(isHovered && !m_IsOpen);
+
 			auto remaining = m_Toasts.size() - 1;
 			if (remaining > 0)
 			{
-				std::string countText = std::format("+{}", remaining);
-				ImVec2 countTextSize = ImGui::CalcTextSize(countText.c_str());
 				float radius = 12.0f;
 				float toastHeight = notif->ComputeHeight();
-				ImVec2 counterPos(toastPos.x + maxWidth - radius, toastPos.y - radius);
-				ImVec2 textPos(counterPos.x - (countTextSize.x / 2), counterPos.y - (countTextSize.y / 2));
 				ImU32 counterBg = IM_COL32(55, 55, 55, 255);
+				ImVec2 counterPos(toastPos.x + maxWidth - radius, toastPos.y - radius);
 				ImGui::SetCursorScreenPos(toastPos);
 				drawList->AddCircleFilled(counterPos, radius, counterBg);
+
 				ImGui::PushFont(Fonts::Small);
+				std::string countText = std::format("+{}", remaining);
+				ImVec2 countTextSize = ImGui::CalcTextSize(countText.c_str());
+				ImVec2 textPos(counterPos.x - (countTextSize.x / 2), counterPos.y - (countTextSize.y / 2));
 				drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), countText.c_str());
 				ImGui::PopFont();
 			}
@@ -261,8 +290,8 @@ namespace YLP
 		m_Read = true;
 		m_Callback = nullptr;
 
-		if (!Notifier::IsOpen())
-			Notifier::ClearRead();
+		if (!IsOpen())
+			ClearRead();
 	}
 
 	void Notifier::Notification::Invoke()
@@ -273,8 +302,8 @@ namespace YLP
 			ThreadManager::Run([callback] {
 				callback();
 
-				if (Notifier::IsOpen())
-					Notifier::Close();
+				if (IsOpen())
+					Close();
 			});
 		}
 		Dismiss();
@@ -291,15 +320,15 @@ namespace YLP
 		return panelHeight;
 	}
 
-	void Notifier::Notification::Draw(float xLeft, float contentW, ImDrawList* drawList)
+	bool Notifier::Notification::Draw(float xLeft, float contentW, ImDrawList* drawList)
 	{
 		using namespace std::chrono_literals;
 
 		ImGuiIO& io = ImGui::GetIO();
-		auto now_sys = std::chrono::system_clock::now();
-		float age_s = std::chrono::duration_cast<std::chrono::duration<float>>(now_sys - m_TimeCreated).count();
+		auto now = std::chrono::system_clock::now();
+		float age = std::chrono::duration_cast<std::chrono::duration<float>>(now - m_TimeCreated).count();
 		const float animDur = 0.22f;
-		float animT = ImSaturate(age_s / animDur);
+		float animT = ImSaturate(age / animDur);
 		float ease = ImSaturate(animT);
 		const float cardRounding = 10.0f;
 		const float padding = 12.0f;
@@ -322,16 +351,16 @@ namespace YLP
 		float cardHeight = std::max(50.0f, titleSize.y + titleSpacing + bodySize.y + (padding * 2));
 		float cardWidth = contentW;
 		float slideOffset = (1.0f - ease) * 10.0f;
-		float alpha = 0.0f + ease;
-		ImVec4 textColorVec4 = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-		ImU32 textColor = ImGui::GetColorU32(ImVec4(textColorVec4.x, textColorVec4.y, textColorVec4.z, alpha));
+		float alpha = (0.0f + ease) * m_GlobalAlpha;
+		ImU32 textColor = ImGui::GetColorU32(ImGuiCol_Text, alpha);
 		ImVec2 cardTL = ImVec2(cursorPos.x, cursorPos.y + slideOffset);
 		ImVec2 cardBR = ImVec2(cursorPos.x + cardWidth, cursorPos.y + slideOffset + cardHeight);
 
 		drawList->AddRectFilled(ImVec2(cardTL.x, cardTL.y + 4.0f), ImVec2(cardBR.x, cardBR.y + 6.5f), IM_COL32(0, 0, 0, static_cast<int>(55.0f * alpha)), cardRounding);
-		ImU32 cardBg = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_ChildBg));
+		ImU32 cardBg = ImGui::GetColorU32(ImGuiCol_ChildBg);
 		drawList->AddRectFilled(cardTL, cardBR, cardBg, cardRounding);
 		drawList->AddRect(cardTL, cardBR, IM_COL32(255, 255, 255, static_cast<int>(18.0f * alpha)), cardRounding, 0, 1.0f);
+		bool isHovered = ImGui::IsMouseHoveringRect(cardTL, cardBR);
 
 		ImVec2 accentCenter = ImVec2(cardTL.x + padding, cardTL.y + padding);
 		ImU32 accentColor = ImGui::GetColorU32(m_Color);
@@ -371,7 +400,6 @@ namespace YLP
 		}
 
 		ImGui::SetCursorScreenPos(ImVec2(xLeft, cardBR.y + 8.0f));
-
 		if (m_Callback != nullptr)
 		{
 			ImRect contentRect(ImVec2(cardTL.x, bodyPos.y), cardBR);
@@ -383,5 +411,7 @@ namespace YLP
 					Invoke();
 			}
 		}
+
+		return isHovered;
 	}
 }

@@ -259,6 +259,28 @@ namespace YLP::Utils
 		return FormatDateShort(iso) + " (" + FormatRelativeDate(iso) + ")";
 	}
 
+	std::string GenerateUUID()
+	{
+		std::random_device device;
+		std::mt19937 twister(device());
+		std::uniform_int_distribution<uint32_t> distrib(0, 0xFFFFFFFF);
+		uint32_t parts[4] = {distrib(twister), distrib(twister), distrib(twister), distrib(twister)};
+
+		parts[1] = (parts[1] & 0xFFFF0FFF) | 0x00004000;
+		parts[2] = (parts[2] & 0x3FFFFFFF) | 0x80000000;
+
+		std::stringstream ss;
+		ss << std::hex << std::setfill('0')
+		   << std::setw(8) << parts[0] << "-"
+		   << std::setw(4) << (parts[1] >> 16) << "-"
+		   << std::setw(4) << (parts[1] & 0xFFFF) << "-"
+		   << std::setw(4) << (parts[2] >> 16) << "-"
+		   << std::setw(4) << (parts[2] & 0xFFFF)
+		   << std::setw(8) << parts[3];
+
+		return ss.str();
+	}
+
 	IconData HICONToRGBA(HICON hIcon)
 	{
 		IconData result{};

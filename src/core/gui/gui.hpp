@@ -19,10 +19,11 @@
 
 #include "renderer.hpp"
 #include "fonts/fonts.hpp"
-#include <frontend/injector.hpp>
-#include <frontend/main_window.hpp>
-#include <frontend/yimmenu_lua.hpp>
-//#include <frontend/lua_scripting.hpp>
+#include "frontend/injector.hpp"
+#include "frontend/main_window.hpp"
+#include "frontend/yimmenu_lua.hpp"
+#include "frontend/plugins.hpp"
+#include "frontend/settings.hpp"
 
 
 namespace YLP
@@ -42,7 +43,7 @@ namespace YLP
 			TAB_MAIN,
 			TAB_YIMMENU_LUA,
 			TAB_INJECTOR,
-			//TAB_SCRIPTING,
+			TAB_SCRIPTING,
 			TAB_SETTINGS,
 			TAB_INFO,
 			__COUNT,
@@ -66,11 +67,6 @@ namespace YLP
 		static void Draw()
 		{
 			GetInstance().DrawImpl();
-		}
-
-		static void DrawSettings()
-		{
-			GetInstance().DrawSettingsImpl();
 		}
 
 		static void ToggleDisableUI(bool toggle) noexcept
@@ -101,8 +97,7 @@ namespace YLP
 		void DrawTopBarImpl();
 		void DrawSideBarImpl();
 		void DrawDebugConsoleImpl();
-		void DrawSettingsImpl();
-		void AddTabImpl(const eTabID& id, const std::string_view& name, GuiCallback&& callback, std::optional<std::string_view> hint);
+		void InititializeTabImpl(const eTabID& id, const std::string_view& name, GuiCallback&& callback, std::optional<std::string_view> hint);
 		void OnTabSwitchImpl();
 		void SetActiveTabImpl(const eTabID& tabID);
 		void RefreshCurrentTabImpl();

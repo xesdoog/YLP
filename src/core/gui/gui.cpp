@@ -18,7 +18,6 @@
 #include "gui.hpp"
 #include "theme_mgr.hpp"
 #include "notifier.hpp"
-#include <core/memory/pointers.hpp>
 
 
 namespace YLP
@@ -30,19 +29,12 @@ namespace YLP
 		Fonts::Load(ImGui::GetIO());
 		ThemeManager::Init();
 
-		AddTabImpl(eTabID::TAB_MAIN, ICON_MD_HOME, &YimMenuUI::Draw, "Dashboard");
-		AddTabImpl(eTabID::TAB_YIMMENU_LUA, ICON_MD_EXTENSION, &LuaScriptsUI::Draw, "YimMenu-Lua");
-		AddTabImpl(eTabID::TAB_INJECTOR, ICON_MD_STORAGE, &InjectorUI::Draw, "Standalone Injector");
-
-		/*
-			TODO: Implement LuaJIT and allow power users to extend YLP however they like.
-			This can be a powerful feature but I'm currently the only maintainer of this project 
-			and I don't want to deal with the headache of potential risks that may arise from using arbitrary scripts.
-		*/
-		//AddTabImpl(eTabID::TAB_SCRIPTING, ICON_MD_CODE, &ScriptingUI::Draw "Scripting");
-
-		AddTabImpl(eTabID::TAB_SETTINGS, ICON_MD_SETTINGS, DrawSettings, "Settings");
-		AddTabImpl(eTabID::TAB_INFO, ICON_MD_INFO, DrawAboutSection, "About");
+		InititializeTabImpl(eTabID::TAB_MAIN, ICON_MD_HOME, &YimMenuUI::Draw, "Dashboard");
+		InititializeTabImpl(eTabID::TAB_YIMMENU_LUA, ICON_MD_EXTENSION, &LuaScriptsUI::Draw, "YimMenu-Lua");
+		InititializeTabImpl(eTabID::TAB_INJECTOR, ICON_MD_STORAGE, &InjectorUI::Draw, "Standalone Injector");
+		InititializeTabImpl(eTabID::TAB_SCRIPTING, ICON_MD_CODE, &PluginsUI::Draw, "Scripting");
+		InititializeTabImpl(eTabID::TAB_SETTINGS, ICON_MD_SETTINGS, &SettingsUI::Draw, "Settings");
+		InititializeTabImpl(eTabID::TAB_INFO, ICON_MD_INFO, DrawAboutSection, "About");
 
 		eTabID lastTabIdx = eTabID::TAB_MAIN;
 		if (Config().restoreLastTab)
@@ -54,7 +46,7 @@ namespace YLP
 		m_ActiveTab = m_Tabs[TabIDToIndex(lastTabIdx)].get();
 	}
 
-	void GUI::AddTabImpl(const eTabID& id, const std::string_view& name, GuiCallback&& callback, std::optional<std::string_view> hint)
+	void GUI::InititializeTabImpl(const eTabID& id, const std::string_view& name, GuiCallback&& callback, std::optional<std::string_view> hint)
 	{
 		size_t idx = TabIDToIndex(id);
 		if (idx >= m_Tabs.size())
@@ -143,6 +135,7 @@ namespace YLP
 
 		ImGui::PopStyleVar();
 		ImGui::BeginDisabled(m_ShouldDisableUI);
+
 		const float consoleChildHeight = std::min(m_WindowSize.y * 0.3f, 240.0f);
 		float mainChildHeight = Config().internalConsole ? m_WindowSize.y - consoleChildHeight : ImGui::GetContentRegionAvail().y;
 		ImGui::SetNextWindowBgAlpha(0.175f);
@@ -175,7 +168,7 @@ namespace YLP
 		ImGui::EndDisabled();
 
 		OnTabSwitchImpl();
-		Notifier::DrawToast();
+		Notifier::DrawToasts();
 		ImGui::End();
 	}
 
@@ -273,48 +266,38 @@ namespace YLP
 		ImGui::Spacing();
 		if (ImGui::BeginChild("##console", ImVec2(0, 0), ImGuiChildFlags_Border))
 		{
-			auto& logEntries = Logger::Entries();
+			auto& imguiSink = Logger::GetImGuiSink();
+			auto& entries = imguiSink.GetEntries();
 			ImGui::PushFont(Fonts::Small);
-			ImGui::BeginDisabled(logEntries.empty());
+			ImGui::BeginDisabled(entries.empty());
 			if (ImGui::Button(ICON_MD_CONTENT_COPY))
 			{
 				std::string text;
-				for (const auto& e : Logger::Entries())
-					text += "[" + e.timestamp + "] " + Logger::ToString(e.level) + " " + e.message + "\n";
+				for (const auto& e : entries)
+					text += imguiSink.FormatEntry(e);
 				ImGui::SetClipboardText(text.c_str());
 			}
 			ImGui::ToolTip("Copy all log entries");
 
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_MD_DELETE))
-				Logger::Clear();
+				imguiSink.Clear();
 			ImGui::ToolTip("Clear all log entries");
 			ImGui::EndDisabled();
+			ImGui::Spacing();
 
-			ImGui::SetNextWindowBgAlpha(1.f);
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.01f, 0.01f, 0.01f, 1.0f));
-			if (ImGui::BeginChild("##debug_output", ImVec2(0, 0), ImGuiChildFlags_Borders))
+			if (ImGui::BeginChild("##internal_console", ImVec2(0, 0), 0))
 			{
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));
 				ImGui::PushTextWrapPos(0.0f);
 
-				for (int i = 0; i < logEntries.size(); ++i)
+				for (const auto& e : entries)
 				{
-					auto& entry = logEntries[i];
-					ImVec4 color;
-
-					switch (entry.level)
-					{
-					case Logger::eLogLevel::Info: color = ImVec4(0.7f, 0.7f, 0.7f, 1.f); break;
-					case Logger::eLogLevel::Warn: color = ImVec4(1.f, 0.8f, 0.f, 1.f); break;
-					case Logger::eLogLevel::Error: color = ImVec4(1.f, 0.3f, 0.3f, 1.f); break;
-					case Logger::eLogLevel::Debug: color = ImVec4(0.5f, 0.8f, 1.f, 1.f); break;
-					default: color = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-					}
-
-					auto text = std::format("[{}] {}: {}\n", entry.timestamp, Logger::ToString(entry.level), entry.message);
+					auto text = imguiSink.FormatEntry(e);
+					ImVec4 color = imguiSink.GetLevelColor(e);
 					ImGui::PushStyleColor(ImGuiCol_Text, color);
-					ImGui::PushID(i);
+					ImGui::PushID(&e);
 					ImGui::WrappedSelectable(text.c_str());
 					ImGui::PopID();
 					ImGui::PopStyleColor();
@@ -350,81 +333,6 @@ namespace YLP
 		case 2: ImGui::StyleColorsClassic(); break;
 		default: ImGui::StyleColorsClassic();
 		}	
-	}
-
-	static void DrawThemes()
-	{
-		ImVec2 previewSize(200, 220);
-		Theme* currentTheme = ThemeManager::GetCurrentTheme();
-		auto& themes = ThemeManager::GetThemes();
-		std::string_view preview = currentTheme ? currentTheme->m_Name : "";
-		for (auto& [name, theme] : themes)
-		{
-			if (ImGui::ThemePreview(theme, currentTheme == &theme, previewSize))
-				ThemeManager::ApplyTheme(name);
-			if (!theme.m_AuthorName.empty())
-				ImGui::ToolTip(std::format("Theme by {}", theme.m_AuthorName).c_str());
-
-			ImGui::SameLineIfAvail(previewSize.x);
-		}
-	}
-
-	void GUI::DrawSettingsImpl()
-	{
-		auto& cfg = Config();
-		ImGui::TitleText("General", true);
-		auto updateState = YLPUpdater.GetState();
-		ImGui::BeginDisabled(updateState == Updater::UpdateState::Error);
-		switch (updateState)
-		{
-		case Updater::UpdateState::Idle:
-		{
-			if (ImGui::Button(ICON_MD_SYNC))
-				YLPUpdater.Check();
-			ImGui::SameLine();
-			ImGui::Text("Check For Updates");
-			break;
-		}
-		case Updater::UpdateState::Checking:
-			ImGui::Spinner("Please Wait...");
-			break;
-		case Updater::UpdateState::Pending:
-		{
-			if (ImGui::Button(ICON_MD_DOWNLOAD))
-				YLPUpdater.Download();
-			ImGui::ToolTip("Update");
-			ImGui::SameLine();
-			ImGui::Text("A new version of YLP is out!");
-			break;
-		}
-		case Updater::UpdateState::Downloading:
-		{
-			ImGui::ProgressBar(YLPUpdater.GetProgress(), ImVec2(160, 25));
-			ImGui::SameLine();
-			ImGui::Text("Downloading...");
-			break;
-		}
-		}
-		ImGui::EndDisabled();
-
-		ImGui::Spacing();
-		ImGui::Checkbox("Internal Debug Console", &cfg.internalConsole);
-		ImGui::HelpMarker("Toggle the internal debug console at the bottom of the UI.");
-
-		//ImGui::Checkbox("External Debug Console", &cfg.externalConsole);
-		//ImGui::HelpMarker("Toggle the external debug console.");
-
-		ImGui::Checkbox("Restore Last Tab", &cfg.restoreLastTab);
-		ImGui::HelpMarker("Your last selected tab will be restored when the program starts.");
-
-		ImGui::BeginDisabled(cfg.autoMonitorFlags == MonitorNone);
-		ImGui::Checkbox("Auto-Exit", &cfg.autoExit);
-		ImGui::HelpMarker("Automatically exit after injecting a dll. This only works if Auto-Inject is enabled for either YimMenu Legacy or V2 or both.");
-		ImGui::EndDisabled();
-
-		ImGui::Spacing();
-		ImGui::TitleText("Themes", true);
-		DrawThemes();
 	}
 
 	static void DrawHeaderAndText(const char* header, const char* text, std::initializer_list<const char*> bullets = {})

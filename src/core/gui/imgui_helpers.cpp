@@ -128,15 +128,16 @@ namespace ImGui
 
 	void TextCentered(const char* text, ImFont* font, float availWidth)
 	{
+		if (!font)
+			font = Fonts::Regular;
+
+		ImGui::PushFont(font);
 		float windowWidth = availWidth ? availWidth : ImGui::GetWindowSize().x;
 		float textWidth = ImGui::CalcTextSize(text).x;
 		float textPosX = (windowWidth - textWidth) * 0.5f;
-		ImGui::SetCursorPosX(textPosX);
-		if (font)
-			ImGui::PushFont(font);
-		ImGui::TextUnformatted(text);
-		if (font)
-			ImGui::PopFont();
+		ImGui::SetCursorPosX(textPosX > 0 ? textPosX : 0);
+		ImGui::Text(text);
+		ImGui::PopFont();
 	}
 
 	bool SelectableLabel(const char* icon, bool selected)
