@@ -85,7 +85,7 @@ local function test()
         return
     end
 
-    print(string.format("fKickVotesNeededRatio: %.2ff", fKickVotesNeededRatio:ReadFloat()))
+    printf("fKickVotesNeededRatio: %.2ff", fKickVotesNeededRatio:ReadFloat())
 end
 
 YLP.RegisterProcessWatcher("GTA5.exe", function(process --[[This parameter is passed by YLP when the process is found]])
