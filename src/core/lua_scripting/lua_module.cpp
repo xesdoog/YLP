@@ -85,7 +85,7 @@ namespace YLP::LuaJIT
 		    sol::lib::table,
 		    sol::lib::utf8);
 
-		m_LuaState["this*"] = reinterpret_cast<void*>(this);
+		m_LuaState["this*"]  = reinterpret_cast<void*>(this);
 		m_LuaState["whodis"] = m_Name;
 
 		m_LuaState.set_exception_handler(exception_handler);
@@ -181,22 +181,27 @@ namespace YLP::LuaJIT
 		}
 	}
 
-	void LuaModule::RegisterTask(sol::protected_function func, std::chrono::milliseconds delayMs)
+	void LuaModule::RegisterTask(sol::protected_function func, std::chrono::milliseconds delayMs, std::vector<sol::object> args)
 	{
 		std::unique_lock lock(m_TaskMutex);
 		auto thread = sol::thread::create(m_LuaState);
 		auto co = sol::coroutine(m_LuaState, func);
-		m_Tasks.push_back({thread, co, std::chrono::steady_clock::now() + delayMs});
+		m_Tasks.push_back({
+			std::move(thread),
+			std::move(co),
+		    std::chrono::steady_clock::now() + delayMs,
+		    std::move(args)
+		});
 	}
 
 	void LuaModule::RegisterProcessWatcher(const std::string& processName, sol::protected_function callback, std::chrono::milliseconds delayMs)
 	{
-		m_ProcessWatchers.push_back({processName, callback, delayMs});
+		m_ProcessWatchers.push_back({processName, std::move(callback), delayMs});
 	}
 
 	void LuaModule::RegisterShutdownCallback(sol::protected_function callback)
 	{
-		m_ShutdownCallbacks.push_back({callback});
+		m_ShutdownCallbacks.push_back(std::move(callback));
 	}
 
 	void LuaModule::DispatchProcessWatchers(const std::chrono::steady_clock::time_point& tickStart)
@@ -204,12 +209,15 @@ namespace YLP::LuaJIT
 		if (tickStart - m_LastProcessPollTime < 500ms)
 			return;
 
-		std::erase_if(m_ProcessWatchers, [this](const auto& waiter) {
-			if (!PsUtils::GetProcessId(waiter.m_ProcessName).has_value())
+		std::erase_if(m_ProcessWatchers, [this](const auto& watcher) {
+			if (!PsUtils::GetProcessId(watcher.m_ProcessName).has_value())
 				return false;
 
-			if (waiter.m_Callback.valid())
-				RegisterTask(std::move(waiter.m_Callback), waiter.m_CallbackDelayMs);
+			if (watcher.m_Callback.valid())
+			{
+				auto proc = sol::make_object<ProcessScanner>(m_LuaState, watcher.m_ProcessName);
+				RegisterTask(watcher.m_Callback, watcher.m_CallbackDelayMs, {std::move(proc)});
+			}
 
 			return true;
 		});
@@ -219,8 +227,8 @@ namespace YLP::LuaJIT
 
 	void LuaModule::Tick()
 	{
-		m_IsRunningTasks.store(true);
 		const auto now = std::chrono::steady_clock::now();
+		m_IsRunningTasks.store(true);
 		DispatchProcessWatchers(now);
 
 		{
@@ -236,11 +244,11 @@ namespace YLP::LuaJIT
 					continue;
 				}
 
-				auto result = it->m_Coroutine();
+				auto result = it->m_Coroutine(sol::as_args(it->m_Args));
 				if (!result.valid())
 				{
 					sol::error error = result;
-					LOG_ERROR("[{}]: {}", m_Name, error.what());
+					LOG_ERROR(error.what());
 					it = m_Tasks.erase(it);
 					continue;
 				}

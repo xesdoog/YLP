@@ -27,16 +27,14 @@ namespace YLP
 {
 	void GitHubManager::InitImpl()
 	{
-		m_OrgName = "YimMenu-Lua";
-		m_AuthToken = ""; // TODO: add optional OAuth (we no longer need it)
+		m_OrgName	  = "YimMenu-Lua";
 		m_ScriptsPath = g_YimPath / "scripts";
-		m_CacheFile = g_ProjectPath / "repo_cache.json";
+		m_CacheFile	  = g_ProjectPath / "repo_cache.json";
 
-		ThreadManager::RunDelayed([this] {
+		ThreadManager::RunDelayed([this]() {
 			LoadETag();
 			FetchRepositories();
-		},
-		    400ms);
+		}, 400ms);
 	}
 
 	void GitHubManager::LoadETagImpl()
@@ -91,29 +89,31 @@ namespace YLP
 		for (auto& [name, repo] : repositories.items())
 		{
 			Repository script = repo.get<Repository>();
-			std::filesystem::path localPath = m_ScriptsPath / name;
-			std::filesystem::path disabledPath = m_ScriptsPath / "disabled" / name;
+
+			std::filesystem::path localPath		= m_ScriptsPath / name;
+			std::filesystem::path disabledPath  = m_ScriptsPath / "disabled" / name;
+
 			bool installed = IsScriptInstalled(name);
-			bool disabled = (IO::Exists(disabledPath) && IO::HasLuaFiles(disabledPath) && !IO::Exists(localPath));
+			bool disabled  = (IO::Exists(disabledPath) && IO::HasLuaFiles(disabledPath) && !IO::Exists(localPath));
 
 			if (script.isInstalled && !installed)
 			{
-				script.isDisabled  = false;
-				script.isInstalled = false;
-				script.currentPath = "";
-				script.lastChecked = {};
+				script.isDisabled   = false;
+				script.isInstalled  = false;
+				script.currentPath  = "";
+				script.lastChecked  = {};
 				should_update_cache = true;
 			}
 
 			if (script.isInstalled != installed)
 			{
-				script.isInstalled = installed;
+				script.isInstalled	= installed;
 				should_update_cache = true;
 			}
 
 			if (script.isDisabled != disabled)
 			{
-				script.isDisabled = disabled;
+				script.isDisabled	= disabled;
 				should_update_cache = true;
 			}
 
@@ -157,7 +157,7 @@ namespace YLP
 			return;
 
 		nlohmann::json j;
-		j["ETag"] = m_RepoETag;
+		j["ETag"]	= m_RepoETag;
 		auto& repos = j["repositories"];
 
 		for (auto& [key, val] : m_Repos)
@@ -174,9 +174,11 @@ namespace YLP
 		{
 			LOG_INFO("[GitMgr]: Fetching Lua repositories from https://github.com/YimMenu-Lua");
 			m_State = eLoadState::LOADING;
-			bool cacheLoaded = LoadCache();
+
+			bool cacheLoaded  = LoadCache();
 			std::wstring host = L"api.github.com";
 			std::wstring path = L"/orgs/" + std::wstring(m_OrgName.begin(), m_OrgName.end()) + L"/repos?per_page=100";
+
 			std::vector<std::wstring> headers = {
 				L"User-Agent: YLP-GitHubClient\r\n",
 				L"Accept: application/vnd.github+json\r\n",
@@ -236,15 +238,16 @@ namespace YLP
 
 				Repository script;
 
-				script.name = name;
-				script.stars = repo.value("stargazers_count", 0);
-				script.lastUpdate = repo.value("pushed_at", "");
-				script.description = repo.value("description", "");
-				script.isInstalled = IsScriptInstalled(name);
-				script.htmlUrl = std::format("https://github.com/{}/{}", m_OrgName, name);
+				script.name			= name;
+				script.stars		= repo.value("stargazers_count", 0);
+				script.lastUpdate	= repo.value("pushed_at", "");
+				script.description	= repo.value("description", "");
+				script.isInstalled	= IsScriptInstalled(name);
+				script.htmlUrl		= std::format("https://github.com/{}/{}", m_OrgName, name);
 
-				std::filesystem::path enabledPath = m_ScriptsPath / name;
+				std::filesystem::path enabledPath  = m_ScriptsPath / name;
 				std::filesystem::path disabledPath = m_ScriptsPath / "disabled" / name;
+
 				script.isDisabled = IO::Exists(disabledPath) && IO::HasLuaFiles(disabledPath) && !IO::Exists(enabledPath);
 
 				if (auto it = oldRepos.find(name); it != oldRepos.end())
@@ -338,7 +341,7 @@ namespace YLP
 			return;
 
 		IO::Rename(src, dest);
-		repo.isDisabled = dest.parent_path().filename().string() == "disabled";
+		repo.isDisabled  = dest.parent_path().filename().string() == "disabled";
 		repo.currentPath = dest;
 		SaveCache();
 	}
@@ -377,7 +380,7 @@ namespace YLP
 				if (repo.isDownloading)
 					return;
 
-				repo.isDownloading = true;
+				repo.isDownloading	  = true;
 				repo.downloadProgress = 0.f;
 			}
 
@@ -385,9 +388,9 @@ namespace YLP
 			if (!IO::Exists(cacheDir))
 				IO::CreateFolders(cacheDir);
 
-			const auto zipPath = cacheDir / (name + ".zip");
-			const auto extractDir = cacheDir / (name + "_extracted");
-			const auto installDir = m_ScriptsPath / name;
+			const auto zipPath		= cacheDir / (name + ".zip");
+			const auto extractDir	= cacheDir / (name + "_extracted");
+			const auto installDir	= m_ScriptsPath / name;
 			const std::wstring host = L"github.com";
 			const std::wstring path = L"/"
 				+ std::wstring(m_OrgName.begin(), m_OrgName.end())
@@ -399,7 +402,7 @@ namespace YLP
 			{
 				LOG_ERROR("[GitMgr]: Failed to download repository: {}", name);
 				std::scoped_lock lock(m_Mutex);
-				repo.isDownloading = false;
+				repo.isDownloading	  = false;
 				repo.downloadProgress = 0.f;
 				return;
 			}
@@ -410,7 +413,7 @@ namespace YLP
 			{
 				LOG_ERROR("[GitMgr]: Failed to extract repository: {}", repo.name);
 				std::scoped_lock lock(m_Mutex);
-				repo.isDownloading = false;
+				repo.isDownloading	  = false;
 				repo.downloadProgress = 0.f;
 				return;
 			}
@@ -429,7 +432,7 @@ namespace YLP
 			{
 				LOG_ERROR("[GitMgr]: Could not locate extracted repository root folder in {}", extractDir.string());
 				std::scoped_lock lock(m_Mutex);
-				repo.isDownloading = false;
+				repo.isDownloading	  = false;
 				repo.downloadProgress = 0.f;
 				return;
 			}
@@ -452,28 +455,26 @@ namespace YLP
 			}
 
 			LOG_INFO("[GitMgr]: Installed repository to {}. Performing cleanup...", installDir.string());
-
-			IO::RemoveAll(extractDir);
-			IO::Remove(zipPath);
-
 			{
 				std::scoped_lock lock(m_Mutex);
-				repo.downloadProgress = 0.f;
-				repo.isDownloading = false;
-				repo.isInstalled = true;
-				repo.currentPath = m_ScriptsPath / name;
-				repo.lastChecked = std::chrono::system_clock::now();
-				repo.isPendingUpdate = repo.is_outdated();
+				repo.downloadProgress	= 0.f;
+				repo.isDownloading		= false;
+				repo.isInstalled		= true;
+				repo.currentPath		= m_ScriptsPath / name;
+				repo.lastChecked		= std::chrono::system_clock::now();
+				repo.isPendingUpdate	= repo.is_outdated();
 			}
 
 			SaveCache();
+			IO::RemoveAll(extractDir);
+			IO::Remove(zipPath);
 			LOG_INFO("[GitMgr]: Done.");
 		});
 	}
 
 	const bool GitHubManager::IsScriptInstalled(const std::string& name)
 	{
-		auto enabled_path = m_ScriptsPath / name;
+		auto enabled_path  = m_ScriptsPath / name;
 		auto disabled_path = m_ScriptsPath / "disabled" / name;
 		return (IO::Exists(enabled_path) && IO::HasLuaFiles(enabled_path)) || (IO::Exists(disabled_path) && IO::HasLuaFiles(disabled_path));
 	}

@@ -201,4 +201,37 @@ namespace ImGui
 	{
 		return YLP::Renderer::GetWindowSize().x >= 1200 ? Fonts::Regular : Fonts::Small;
 	}
+
+	void DrawRotatingImage(ImDrawList* drawList, ImTextureID texture, ImVec2 centrePos, ImVec2 size, float angle)
+	{
+		const ImVec2 halfSize	= size * 0.5f;
+		const ImVec2 corners[]	= {
+		    {-halfSize.x, -halfSize.y},
+		    {halfSize.x, -halfSize.y},
+		    {halfSize.x, halfSize.y},
+		    {-halfSize.x, halfSize.y}};
+
+		const float cos = std::cos(angle);
+		const float sin = std::sin(angle);
+
+		ImVec2 rotated[4];
+		for (int i = 0; i < 4; ++i)
+		{
+			rotated[i] = {
+			    centrePos.x + corners[i].x * cos - corners[i].y * sin,
+			    centrePos.y + corners[i].x * sin + corners[i].y * cos
+			};
+		}
+
+		drawList->AddImageQuad(
+		    texture,
+		    rotated[0],
+		    rotated[1],
+		    rotated[2],
+		    rotated[3],
+		    {0, 0},
+		    {1, 0},
+		    {1, 1},
+		    {0, 1});
+	}
 }

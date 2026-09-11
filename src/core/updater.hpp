@@ -32,32 +32,39 @@ namespace YLP
 	private:
 		struct Version
 		{
-			int major = 0;
-			int minor = 0;
-			int patch = 0;
-			int build = 0;
+			int m_Major = 0;
+			int m_Minor = 0;
+			int m_Patch = 0;
+			int m_Build = 0;
 
-			std::string ToString() const
+			std::string m_CachedStr{};
+
+			const std::string ToString()
 			{
-				std::ostringstream oss;
-				oss << major << "." << minor << "." << patch << "." << build;
-				return oss.str();
+				if (m_CachedStr.empty())
+				{
+					std::ostringstream oss;
+					oss << m_Major << "." << m_Minor << "." << m_Patch << "." << m_Build;
+					m_CachedStr = oss.str();
+				}
+
+				return m_CachedStr;
 			}
 
 			constexpr explicit operator bool() const noexcept
 			{
-				return major != 0;
+				return m_Major != 0;
 			}
 
 			constexpr bool operator<(const Version& other) const noexcept
 			{
-				if (major != other.major)
-					return major < other.major;
-				if (minor != other.minor)
-					return minor < other.minor;
-				if (patch != other.patch)
-					return patch < other.patch;
-				return build < other.build;
+				if (m_Major != other.m_Major)
+					return m_Major < other.m_Major;
+				if (m_Minor != other.m_Minor)
+					return m_Minor < other.m_Minor;
+				if (m_Patch != other.m_Patch)
+					return m_Patch < other.m_Patch;
+				return m_Build < other.m_Build;
 			}
 
 			constexpr bool operator>(const Version& other) const noexcept
@@ -67,12 +74,12 @@ namespace YLP
 
 			constexpr bool operator!=(const Version& other) const noexcept
 			{
-				return major != other.major || minor != other.minor || patch != other.patch || build != other.build;
+				return m_Major != other.m_Major || m_Minor != other.m_Minor || m_Patch != other.m_Patch || m_Build != other.m_Build;
 			}
 
 			constexpr bool operator==(const Version& other) const noexcept
 			{
-				return major == other.major && minor == other.minor && patch == other.patch && build == other.build;
+				return m_Major == other.m_Major && m_Minor == other.m_Minor && m_Patch == other.m_Patch && m_Build == other.m_Build;
 			}
 		};
 

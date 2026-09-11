@@ -16,10 +16,9 @@
 
 
 #include "updater.hpp"
-
-#include <core/gui/gui.hpp>
-#include <core/gui/msgbox.hpp>
-#include <core/gui/notifier.hpp>
+#include "core/gui/gui.hpp"
+#include "core/gui/msgbox.hpp"
+#include "core/gui/notifier.hpp"
 
 
 namespace YLP
@@ -27,7 +26,8 @@ namespace YLP
 	void Updater::Reset()
 	{
 		m_DownloadProgress = 0.f;
-		m_State = Idle;
+		m_State			   = Idle;
+
 		IO::RemoveAll(g_ProjectPath / "update_cache");
 	}
 
@@ -138,7 +138,7 @@ namespace YLP
 		}
 
 		Version v{};
-		swscanf_s(Utils::UTF8ToWide(latest_tag).c_str(), L"%d.%d.%d.%d", &v.major, &v.minor, &v.patch, &v.build);
+		swscanf_s(Utils::UTF8ToWide(latest_tag).c_str(), L"%d.%d.%d.%d", &v.m_Major, &v.m_Minor, &v.m_Patch, &v.m_Build);
 		return v;
 	}
 

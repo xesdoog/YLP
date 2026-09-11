@@ -103,12 +103,10 @@ namespace YLP
 		ImGui::SetNextWindowSize(m_WindowSize, ImGuiCond_Always);
 		ImGui::SetNextWindowPos(ImVec2(0.f, 0.f), ImGuiCond_Always);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::Begin(
-		    "YLP",
-		    nullptr,
-		    ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoTitleBar);
+		ImGui::Begin("YLP", nullptr,
+		    ImGuiWindowFlags_NoMove
+		    | ImGuiWindowFlags_NoResize
+		    | ImGuiWindowFlags_NoTitleBar);
 
 		ImGui::PopStyleVar();
 		ImGui::BeginDisabled(m_ShouldDisableUI);

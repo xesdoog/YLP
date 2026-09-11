@@ -71,18 +71,38 @@ namespace YLP::PsUtils
 			StopUpdating();
 		}
 
-		void StartUpdating();
-		void StopUpdating();
-		void UpdateProcesses();
-		std::vector<ProcessEntry> GetSnapshot();
+		static void StartUpdating()
+		{
+			GetInstance().StartUpdatingImpl();
+		}
+
+		static void StopUpdating()
+		{
+			GetInstance().StopUpdatingImpl();
+		}
+
+		static void UpdateProcesses()
+		{
+			GetInstance().UpdateProcessesImpl();
+		}
+
+		static const std::vector<ProcessEntry> GetSnapshot()
+		{
+			return GetInstance().GetSnapshotImpl();
+		}
 
 	private:
-		std::vector<ProcessEntry> m_Processes;
-		std::mutex m_Mutex;
-		std::thread m_Worker;
+		void StartUpdatingImpl();
+		void StopUpdatingImpl();
+		void UpdateProcessesImpl();
+		const std::vector<ProcessEntry> GetSnapshotImpl();
+		std::vector<ProcessEntry> m_Processes{};
+		std::mutex m_Mutex{};
+		std::thread m_Worker{};
 		std::atomic<bool> m_Running{false};
-		std::condition_variable m_ConVar;
-		std::mutex m_CVMutex;
+		std::condition_variable m_ConVar{};
+		std::mutex m_CVMutex{};
+		std::chrono::time_point<std::chrono::steady_clock> m_LastUpdated{};
 	};
 
 	class ScopedHandle

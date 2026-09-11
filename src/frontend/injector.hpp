@@ -34,7 +34,7 @@ namespace YLP::Frontend
 		{
 		}
 
-		static inline void OnFileSelected(const DllInfo& file, ProcessList& processList)
+		static inline void OnFileSelected(const DllInfo& file)
 		{
 			std::string lastKnown = file.lastKnownProcess;
 			if (file.checksum == lastSelectedDLL || selectedProcess.m_Name == lastKnown)
@@ -44,11 +44,10 @@ namespace YLP::Frontend
 				return;
 
 			if (!initialized)
-				processList.UpdateProcesses();
+				ProcessList::UpdateProcesses();
 
 			selectedProcess = {}; // is this even necessary? I know my goofy ass once injected YimLuaAPI into spotify because it was the last selected process
-			auto snapshot = processList.GetSnapshot();
-			for (auto& p : snapshot)
+			for (auto& p : ProcessList::GetSnapshot())
 			{
 				if (p.m_Name == lastKnown)
 				{
@@ -61,17 +60,18 @@ namespace YLP::Frontend
 
 		void Draw() override
 		{
-			auto processes = processList.GetSnapshot();
-			auto childRegion = ImGui::GetContentRegionAvail();
-			auto& savedDLLs = Config().savedDlls;
+			auto processes		= ProcessList::GetSnapshot();
+			auto childRegion	= ImGui::GetContentRegionAvail();
+			auto& savedDLLs		= Config().savedDlls;
 			std::string preview = selectedProcess.m_Name.empty() ? "Process List" : selectedProcess.m_Name;
+
 			ImGui::Spacing();
 			ImGui::SetNextItemWidth(-1);
-			if (ImGui::BeginCombo("##processList", std::format("{} {}", ICON_MD_MEMORY, preview).c_str()))
+			if (ImGui::BeginCombo("##processList", std::format("{} {}", ICON_MD_MEMORY, preview).c_str(), ImGuiComboFlags_HeightLarge))
 			{
 				if (!initialized)
 				{
-					processList.StartUpdating();
+					ProcessList::StartUpdating();
 					initialized = true;
 				}
 
@@ -79,16 +79,16 @@ namespace YLP::Frontend
 				ImGui::InputTextWithHint("##SearchBox", ICON_MD_SEARCH, searchBuffer, sizeof(searchBuffer));
 				ImGui::Separator();
 
-				ImGui::BeginChild("##processList", ImVec2(0, 165), 0, ImGuiWindowFlags_AlwaysUseWindowPadding);
+				ImGui::BeginChild("##processList", ImVec2(0, 200), 0, ImGuiWindowFlags_AlwaysUseWindowPadding);
 				ImGui::Spacing();
 				for (int i = 0; i < processes.size(); ++i)
 				{
-					auto p = processes[i];
+					auto& p = processes[i];
 					if (p.m_Name.empty())
 						continue;
 
 					auto nameLower = Utils::StringToLower(p.m_Name);
-					if (searchBuffer[0] != '\0' && nameLower.find(Utils::StringToLower(std::string(searchBuffer))) == std::string::npos)
+					if (searchBuffer[0] != '\0' && nameLower.find(Utils::StringToLower(searchBuffer)) == std::string::npos)
 						continue;
 
 					if (nameLower.find("system") != std::string::npos)
@@ -103,7 +103,6 @@ namespace YLP::Frontend
 					}
 
 					ImGui::PopID();
-
 					ImGui::SameLine(ImGui::GetContentRegionAvail().x - 62.0f);
 					ImGui::Text("[%u]", p.m_Pid);
 				}
@@ -112,7 +111,7 @@ namespace YLP::Frontend
 			}
 			else if (initialized)
 			{
-				processList.StopUpdating();
+				ProcessList::StopUpdating();
 				initialized = false;
 			}
 
@@ -193,7 +192,7 @@ namespace YLP::Frontend
 				if (ImGui::IsItemClicked(0))
 				{
 					selectedDLL = dll;
-					OnFileSelected(dll, processList);
+					OnFileSelected(dll);
 				}
 
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
@@ -303,12 +302,11 @@ namespace YLP::Frontend
 		}
 
 	private:
-		static inline ProcessList processList;
-		static inline ProcessEntry selectedProcess;
-		static inline DllInfo selectedDLL;
-		static inline bool initialized = false;
+		static inline ProcessEntry selectedProcess{};
+		static inline DllInfo selectedDLL{};
+		static inline bool initialized{false};
 		static inline char searchBuffer[256];
-		static inline std::mutex m_Mutex;
+		static inline std::mutex m_Mutex{};
 		static inline std::string lastSelectedDLL{};
 		static inline std::string dndTarget{};
 	};

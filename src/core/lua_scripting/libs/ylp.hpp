@@ -21,6 +21,7 @@
 #include "../lua_module.hpp"
 #include "../../memory/scanner.hpp"
 #include "../../utils/psutils.hpp"
+#include "../../updater.hpp"
 
 
 namespace YLP::LuaJIT
@@ -36,9 +37,12 @@ namespace YLP::LuaJIT
 			* description
 				### YLP namespace
 
+			* function GetVersion
+			* return string version The current YLP version.
+
 			* function RegisterProcessWatcher Registers a callback to be executed once when a process is first seen.~~You can call `Task.Yield` and `Task.Sleep` in your callback function.
 			* param processName<string> The name of the process
-			* param callback<function> The function to execute
+			* param callback<fun(process: Process)> The function to execute. YLP will pass a Process object to the function as an argument.
 			* param delay<integer?> Optional delay in milliseconds
 			* return boolean success Whether the registration was successful or not.
 
@@ -53,18 +57,17 @@ namespace YLP::LuaJIT
 			@*/
 			auto ylpTable = L["YLP"].get_or_create<sol::table>();
 
+			ylpTable["GetVersion"] = []() {
+				return YLPUpdater.GetLocalVersion().ToString();
+			};
+
 			ylpTable["RegisterProcessWatcher"] = [&](const std::string& processName, sol::protected_function callback, sol::optional<int> delayMs) {
 				auto module = GetModuleFromLuaState(L);
 				if (!module)
 					return false;
 
 				int ms = std::max(0, delayMs.value_or(0));
-				module->RegisterProcessWatcher(
-					processName,
-				    std::move(callback),
-				    static_cast<std::chrono::milliseconds>(ms)
-				);
-
+				module->RegisterProcessWatcher(processName, callback, std::chrono::milliseconds(ms));
 				return true;
 			};
 

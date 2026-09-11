@@ -19,7 +19,6 @@
 #include "core/updater.hpp"
 #include "core/gui/renderer.hpp"
 #include "core/gui/msgbox.hpp"
-#include "core/gui/notifier.hpp"
 #include "core/github/gitmgr.hpp"
 #include "core/YimMenu/yimmenu.hpp"
 #include "core/memory/pointers.hpp"
@@ -37,15 +36,15 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		if (hExHWND)
 			SetForegroundWindow(hExHWND);
 
-		MsgBox::Error(L"Error", L"YLP is already running!");
+		MsgBox::Error("Error", "YLP is already running!");
 		return 0;
 	}
 
-	auto appdata = std::filesystem::path(std::getenv("appdata"));
-	g_Instance = GetModuleHandle(nullptr);
+	auto appdata  = std::filesystem::path(std::getenv("appdata"));
+	g_Instance	  = GetModuleHandle(nullptr);
 	g_ProjectPath = appdata / "YLP";
-	g_YimPath = appdata / "YimMenu";
-	g_YimV2Path = appdata / "YimMenuV2";
+	g_YimPath	  = appdata / "YimMenu";
+	g_YimV2Path   = appdata / "YimMenuV2";
 
 	if (!std::filesystem::exists(g_ProjectPath))
 		std::filesystem::create_directory(g_ProjectPath);
@@ -65,6 +64,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		Renderer::Destroy();
 		ThreadManager::Shutdown();
 		Settings::Destroy();
+		Logger::Destroy();
 		return 1;
 	}
 
@@ -75,9 +75,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	LuaJIT::LuaManager::Init(g_ProjectPath);
 
-	ThreadManager::RunDelayed([] {
-		YLPUpdater.Check();
-	}, 5s);
+	ThreadManager::RunDelayed([]() { YLPUpdater.Check(); }, 5s);
 
 	g_Running = true;
 
@@ -95,18 +93,19 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	}
 
 	g_Running = false;
+
 	Renderer::Destroy();
-	Logger::Destroy();
 	LuaJIT::LuaManager::Destroy();
-	ThreadManager::Shutdown();
 	Settings::Destroy();
+	ThreadManager::Shutdown();
+	Logger::Destroy();
 
 	std::filesystem::path dcache = g_ProjectPath / "downloads_cache";
 	if (std::filesystem::exists(dcache))
 	{
 		try
 		{
-			std::filesystem::remove(dcache);
+			IO::RemoveAll(dcache);
 		}
 		catch (...)
 		{

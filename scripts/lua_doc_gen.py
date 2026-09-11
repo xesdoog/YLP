@@ -42,6 +42,7 @@ class ApiModel:
 
 NAMESPACES: list[str] = []
 UNRESOLVED_MEMBERS: list[ApiMember] = []
+GLOBAL_TABLE: ApiLibrary = ApiLibrary(name="Global Table", kind="table")
 ANNOTATION_RE = re.compile(r"/\*\s?@ylp\.(?P<header>.+?)[\r\n](?P<body>.*?)[\r\n]\s*@\*/", re.DOTALL,)
 HEADER_RE = re.compile(r"^(?P<kind>\w+)\s+(?P<name>\S+).*?$")
 PARAM_RE = re.compile(r"^(?P<name>[^<\s]+)<(?P<type>[^>]+)>(?:\s+(?P<description>.*))?$")
@@ -71,13 +72,6 @@ def split_member_name(name: str) -> tuple[str | None, str]:
 	return owner, member
 
 
-def find_owner(member: ApiMember) -> ApiLibrary | None:
-	for name in NAMESPACES:
-		if name == member.name:
-			return name
-	return None
-
-
 def parse_param(value: str) -> Parameter:
 	match = PARAM_RE.match(value.strip())
 	if not match:
@@ -95,11 +89,10 @@ def parse_return(value: str) -> ReturnValue:
 	Return syntax is currently:
 
 		return Pointer
-		return integer The pointer's memory address.
+		return integer address The pointer's memory address. Notice the added "address" between the type and the description, that's because without it LuaLS will use "The" as the name of the return
 	"""
 
 	parts = value.strip().split(maxsplit=1)
-
 	if not parts:
 		raise ValueError("Return declaration has no type")
 
@@ -176,19 +169,22 @@ def parse_annotation(header: str, body: str) -> ApiMember | ApiLibrary:
 
 
 def resolve_members(model: ApiModel) -> None:
-	libraries = { library.name: library for library in model.libraries }
+	libraries = { lib.name: lib for lib in model.libraries }
 
 	for member in UNRESOLVED_MEMBERS:
 		if member.owner is None:
-			continue
+			member.owner = "Global Table"
 
 		library = libraries.get(member.owner)
 		if library is not None:
 			library.members.append(member)
+			UNRESOLVED_MEMBERS.remove(member)
+
 
 
 def parse_source(source: str) -> ApiModel:
 	model = ApiModel()
+	model.libraries.append(GLOBAL_TABLE)
 
 	for match in ANNOTATION_RE.finditer(source):
 		header = match.group("header")
@@ -207,43 +203,45 @@ def parse_source(source: str) -> ApiModel:
 
 def parse_lua(lib: ApiLibrary, write_path: Path):
 	docstring = "---@meta\n\n"
+	methods: list[ApiMember] = []
 
-	if lib.description:
-		methods: list[ApiMember] = []
-
+	if lib.description and lib.name != "Global Table":
 		docstring += f"-- {"\n-- ".join(line for line in lib.description.split("\n"))}\n"
 		docstring += f"---@class {lib.name}\n"
 
-		for member in lib.members:
-			if member.kind in ("function", "method"):
+	for member in lib.members:
+		if member.kind in ("function", "method"):
+			methods.append(member)
+		elif member.kind == "operator":
+			docstring += f"---@operator {member.name}({"| ".join(p.type for p in member.parameters)}): {member.returns[0].type}\n" # are there even Lua operators that have multiple returns? eh, I can't be arsed
+		elif member.kind == "field":
+			docstring += f"---@field {member.name}: {member.type} {member.description}"
+		elif member.kind == "constructor":
+			if member.name == "__call":
+				docstring += f"---@overload fun({", ".join(f"{p.name}: {p.type}" for p in member.parameters)}): {lib.name}\n"
+			else:
 				methods.append(member)
-			elif member.kind == "operator":
-				docstring += f"---@operator {member.name}({"| ".join(p.type for p in member.parameters)}): {member.returns[0].type}\n" # are there even Lua operators that have multiple returns? eh, I can't be arsed
-			elif member.kind == "field":
-				docstring += f"---@field {member.name}: {member.type} {member.description}"
-			elif member.kind == "constructor":
-				if member.name == "__call":
-					docstring += f"---@overload fun({", ".join(f"{p.name}: {p.type}" for p in member.parameters)}): {lib.name}\n"
-				else:
-					methods.append(member)
 
+	if lib.name != "Global Table":
 		docstring += f"{lib.name} = {{}}\n\n"
 
-		index_cahr = ":" if lib.kind == "class" else "."
-		for method in methods:
-			if method.description:
-				docstring += f"-- {"\n--\n-- ".join(l for l in method.description.split("~~"))}\n"
-			for p in method.parameters:
-				docstring += f"---@param {p.name} {p.type} {p.description}\n"
+	index_char = ":" if lib.kind == "class" else "."
+	for method in methods:
+		if method.description:
+			docstring += f"-- {"\n--\n-- ".join(l for l in method.description.split("~~"))}\n"
 
-			for r in method.returns:
-				docstring += f"---@return {r.type} {r.description}\n"
+		for p in method.parameters:
+			docstring += f"---@param {p.name} {p.type} {p.description}\n"
 
-			docstring += f"function {lib.name}{index_cahr}{method.name}({", ".join(p.name for p in method.parameters)}) end\n\n"
+		for r in method.returns:
+			docstring += f"---@return {r.type} {r.description}\n"
+
+		prefix = lib.name + index_char if lib.name != "Global Table" else ""
+		docstring += f"function {prefix}{method.name}({", ".join(p.name for p in method.parameters)}) end\n\n"
 
 	libpath = write_path / (lib.name + ".d.lua")
 	with libpath.open(mode="w", encoding="utf-8", newline="\n") as f:
-		f.write(docstring)
+		f.write(docstring.strip() + "\n")
 
 
 def gen_luals_defs(model: ApiModel, docs_path: Path):
@@ -310,7 +308,8 @@ def md_returns(returns: list[ReturnValue]) -> str:
 def md_method(method: ApiMember, lib: ApiLibrary) -> str:
     index_char = ":" if lib.kind == "class" else "."
     params = ", ".join(f"{param.name}" for param in method.parameters)
-    signature = f"{lib.name}{index_char}{method.name}({params})"
+    prefix = lib.name + index_char if lib.name != "Global Table" else ""
+    signature = f"{prefix}({params})"
     output = [
         f"## `{method.name}`",
         "",
@@ -342,7 +341,7 @@ def md_operator(operator: ApiMember) -> str:
         f"### `{operator.name}`",
         "",
         "```lua",
-        f"---@operator {operator.name}({params}): {return_type}",
+        f"---@operator __{operator.name}({params}): {return_type}",
         "```",
     ]
 
@@ -383,7 +382,7 @@ def parse_markdown(lib: ApiLibrary, write_path: Path):
         elif member.kind == "constructor":
             constructors.append(member)
 
-    if constructors:
+    if constructors and lib.name != "Global Table":
         docstring += "## Constructors\n\n"
         for constructor in constructors:
             if constructor.name == "__call":
@@ -425,9 +424,8 @@ def parse_markdown(lib: ApiLibrary, write_path: Path):
             docstring += "\n\n"
 
     libpath = write_path / f"{lib.name}.md"
-
     with libpath.open(mode="w", encoding="utf-8", newline="\n") as f:
-        f.write(docstring)
+        f.write(docstring.strip() + "\n")
 
 
 def gen_markdown_docs(model: ApiModel, docs_path: Path):

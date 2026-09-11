@@ -26,6 +26,7 @@
 #include "../core/memory/procmon.hpp"
 #include "../resources/logos/gtav.hpp"
 #include "../resources/logos/gtave.hpp"
+#include "../core/gui/widgets/ylp_spinner.hpp"
 
 
 namespace YLP::Frontend
@@ -64,11 +65,6 @@ namespace YLP::Frontend
 		}
 
 	private:
-		//static inline ImFont* GetScaledFont()
-		//{
-		//	return Renderer::GetWindowSize().x >= 1200 ? Fonts::Regular : Fonts::Small;
-		//}
-
 		static inline void LaunchGame(int launcherIndex, YimMenu& menu, std::shared_ptr<ProcessMonitor>& monitor)
 		{
 			m_AttemptedGameLaunch = true;
@@ -92,7 +88,8 @@ namespace YLP::Frontend
 				break;
 			}
 			case 2:
-				epicID = (version == YimMenuV1) ? "9d2d0eb64d5c44529cece33fe2a46482" : "1af1b2c011864f1f9e432b0c64c6a1f5"; // Thanks to DeadlineEm for providing the Enhanced AppID
+				// Thanks to DeadlineEm for providing the Enhanced AppID
+				epicID = (version == YimMenuV1) ? "9d2d0eb64d5c44529cece33fe2a46482" : "1af1b2c011864f1f9e432b0c64c6a1f5";
 				cmd = "com.epicgames.launcher://apps/" + epicID + "?action=launch&silent=true";
 				break;
 			case 3:
@@ -171,6 +168,25 @@ namespace YLP::Frontend
 		static inline void DrawMenuControls(YimMenu& menu)
 		{
 			auto state = menu.GetState();
+
+			ImGui::BeginDisabled(state != YimMenu::eMenuViewState::Idle);
+			const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
+			bool wantsAutoInject        = (Config().autoMonitorFlags & monitorTarget) != 0;
+			bool wantsAutoUpdate        = (Config().menuAutoUpdateFlags & monitorTarget) != 0;
+			if (ImGui::Checkbox("Auto-Inject", &wantsAutoInject))
+			{
+				Config().autoMonitorFlags ^= monitorTarget;
+				SwitchMonitorMode();
+			}
+
+			if (ImGui::Checkbox("Auto-Update", &wantsAutoUpdate))
+			{
+				Config().menuAutoUpdateFlags ^= monitorTarget;
+				SwitchMonitorMode();
+			}
+			ImGui::EndDisabled();
+			ImGui::Spacing();
+
 			switch (state)
 			{
 				case YimMenu::eMenuViewState::PendingUpdate:
@@ -187,10 +203,11 @@ namespace YLP::Frontend
 					break;
 				}
 				case YimMenu::eMenuViewState::Checking:
-					ImGui::Spinner("Checking for updates...");
+					ImGui::YLPSpinner("Checking for updates...");
 					break;
 				case YimMenu::eMenuViewState::Idle:
 				{
+				    ImGui::BeginDisabled(wantsAutoUpdate);
 				    if (ImGui::Button(ICON_MD_SYNC))
 					{
 						ThreadManager::Run([&menu] {
@@ -199,31 +216,16 @@ namespace YLP::Frontend
 					}
 					ImGui::SameLine();
 					ImGui::Text("Check For Updates");
+				    ImGui::EndDisabled();
 				    break;
 				}
 			    default: break;
 			}
 
-			ImGui::Spacing();
-			ImGui::BeginDisabled(state != YimMenu::eMenuViewState::Idle);
+			float anchorPos = ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2);
+			if (anchorPos > 0)
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + anchorPos);
 
-			const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
-			bool wantsAutoInject        = (Config().autoMonitorFlags & monitorTarget) != 0;
-			bool wantsAutoUpdate        = (Config().menuAutoUpdateFlags & monitorTarget) != 0;
-			if (ImGui::Checkbox("Auto-Inject", &wantsAutoInject))
-			{
-				Config().autoMonitorFlags ^= monitorTarget;
-				SwitchMonitorMode();
-			}
-
-			if (ImGui::Checkbox("Auto-Update", &wantsAutoUpdate))
-			{
-				Config().menuAutoUpdateFlags ^= monitorTarget;
-				SwitchMonitorMode();
-			}
-			ImGui::EndDisabled();
-
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2));
 			if (state == YimMenu::eMenuViewState::Downloading)
 				ImGui::ProgressBar(menu.m_DownloadProgress, ButtonBig);
 		}
@@ -263,14 +265,15 @@ namespace YLP::Frontend
 			bool isRunning = monitor->IsProcessRunning();
 			ImVec4 defaultTextCol = ImGui::GetStyle().Colors[ImGuiCol_Text];
 			ImGui::Dummy(ImVec2(0, 30));
-			ImGui::SetNextWindowBgAlpha(0.f);
-			ImGui::BeginChild("##logo", ImVec2(153, 165), ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar);
+			ImGui::BeginChild("##logo", ImVec2(153, 165), 0, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
 			ImGui::Image(iconTexture, ImVec2(153, 135));
 			ImGui::EndChild();
 
 			ImGui::SameLine();
-			ImGui::SetNextWindowBgAlpha(0.f);
-			ImGui::BeginChild("##game", ImVec2(0, 165));
+			ImGui::Spacing();
+			ImGui::SameLine();
+
+			ImGui::BeginChild("##game", ImVec2(0, 165), 0, ImGuiWindowFlags_NoBackground);
 			const char* playBtnLabel = isRunning ? "Playing" : ICON_MD_PLAY_ARROW " Play";
 			if (m_AttemptedGameLaunch)
 				playBtnLabel = hourglassIcons[static_cast<int>(ImGui::GetTime() / 0.12f) & 3];
@@ -292,10 +295,7 @@ namespace YLP::Frontend
 			if (ImGui::Button(ICON_MD_MORE_VERT, ImVec2(35, 35)))
 				ImGui::OpenPopup("##launcherPopup");
 
-			ImVec2 launcherPopupPos = ImGui::GetItemRectMax();
-			if (ImGui::IsPopupOpen("##launcherPopup"))
-				ImGui::SetNextWindowPos(ImVec2(launcherPopupPos.x, launcherPopupPos.y), ImGuiCond_Always);
-
+			ImGui::SetNextWindowPos(ImGui::GetItemRectMax(), ImGuiCond_Always);
 			if (ImGui::BeginPopup("##launcherPopup"))
 			{
 				ImGui::TextCentered("Select Launcher");
@@ -358,13 +358,21 @@ namespace YLP::Frontend
 			ImGui::PushFont(Fonts::Small);
 			ImGui::DrawKeyValue("Status:", isRunning ? ICON_MD_CHECK_CIRCLE : ICON_MD_BLOCK, false, isRunning ? ImGreen : ImRed);
 
-			auto gv = pointers.GameVersion ? pointers.GameVersion.Read<std::string>() : "";
-			auto ov = pointers.OnlineVersion ? pointers.OnlineVersion.Read<std::string>() : "";
-			ImGui::DrawKeyValue("Version:", std::format("{} (Online: {})", gv.empty() ? "?" : gv, ov.empty() ? "?" : ov));
 
-			auto runtime = (isRunning && pointers.GameTime) ? pointers.GameTime.Read<int32_t>() : 0;
+			int versionIndex = menu.m_Version == eYimVersion::YimMenuV1 ? 0 : 1;
+			auto& versionStr = m_CachedVersions[versionIndex];
+			if (versionStr.empty() && pointers.GameVersion && pointers.OnlineVersion)
+			{
+				auto gv = pointers.GameVersion ? pointers.GameVersion.Read<std::string>() : "";
+				auto ov = pointers.OnlineVersion ? pointers.OnlineVersion.Read<std::string>() : "";
+				m_CachedVersions[versionIndex] = std::format("{} (Online: {})", gv, ov);
+			}
+
+			ImGui::DrawKeyValue("Version:", versionStr);
+
+			/*auto runtime = (isRunning && pointers.GameTime) ? pointers.GameTime.Read<int32_t>() : 0; // unnecessary read. who cares about playtime?
 			if (runtime > 0)
-				ImGui::DrawKeyValue("Play Time:", Utils::Int32ToTime(runtime / 1000));
+				ImGui::DrawKeyValue("Play Time:", Utils::Int32ToTime(runtime / 1000));*/
 
 			auto baseAddress = monitor->GetBaseAddress();
 			ImGui::DrawKeyValue("Module Base:", std::format("0x{:X}", baseAddress), baseAddress != 0);
@@ -375,14 +383,7 @@ namespace YLP::Frontend
 			ImGui::EndChild();
 
 			ImGui::Dummy(ImVec2(0, 20));
-			ImGui::SetNextWindowBgAlpha(0.f);
-			ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.8f);
-			ImGui::BeginChild("##menu", ImVec2(0, 0), ImGuiChildFlags_Borders);
-			ImGui::PopStyleVar();
-			//ImGui::TextCentered(menu.m_Name.c_str(), Fonts::Title);
-			//ImGui::Spacing();
-			//ImGui::Separator();
-			//ImGui::Spacing();
+			ImGui::BeginChild("##menu", ImVec2(0, 0), 0, ImGuiWindowFlags_AlwaysUseWindowPadding);
 
 			float menuChildWidth = std::min(420.0f, ImGui::GetContentRegionAvail().x * 0.5f);
 			bool injected        = monitor->IsModuleLoaded(menu.m_DllName);
@@ -391,7 +392,9 @@ namespace YLP::Frontend
 			ImGui::BeginChild("##controls", ImVec2(menuChildWidth, 0), 0, ImGuiWindowFlags_AlwaysUseWindowPadding);
 			DrawMenuControls(menu);
 
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2));
+			float anchorPos = ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2);
+			if (anchorPos > 0)
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + anchorPos);;
 			DrawMenuDownload(menu);
 			DrawInjectButton(menu, isRunning, injected);
 			ImGui::EndChild();
@@ -485,6 +488,7 @@ namespace YLP::Frontend
 		static inline ImVec4 ImGreen{0, 1, 0, 1};
 		static inline ImVec2 ButtonBig{-1, 37};
 		static inline bool m_AttemptedGameLaunch{false};
+		static inline std::array<std::string, 2> m_CachedVersions{"", ""};
 
 		static inline std::array hourglassIcons{
 			ICON_MD_HOURGLASS_EMPTY, 

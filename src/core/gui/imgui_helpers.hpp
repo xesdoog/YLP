@@ -79,5 +79,13 @@ namespace ImGui
 	    ImKVflags valueDrawFlags = KVflagsNone,
 	    std::string optionalUrl = "");
 
+	void DrawRotatingImage(
+	    ImDrawList* drawList,
+	    ImTextureID texture,
+	    ImVec2 center,
+	    ImVec2 size,
+	    float angle);
+
 	ImFont* GetScaledFont();
+
 }

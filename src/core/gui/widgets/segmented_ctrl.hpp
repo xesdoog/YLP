@@ -27,19 +27,18 @@ namespace ImGui
 		RIGHT,
 	};
 
-	inline bool SegmentedControl(const char* id, 
-		int* current, 
-		std::initializer_list<const char*> items, 
+	inline bool SegmentedControl(const char* id,
+		int* current,
+		std::initializer_list<const char*> items,
 		ImSegmentedControlAnchorPos anchorPos = ImSegmentedControlAnchorPos::LEFT)
 	{
 		ImGui::PushID(id);
-		ImGuiStyle& style = ImGui::GetStyle();
+		ImGuiStyle& style	 = ImGui::GetStyle();
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-		const float height = ImGui::GetFrameHeight();
+		const float height	 = ImGui::GetFrameHeight();
 		const float rounding = style.FrameRounding;
-		float width = 0.0f;
 
+		float width = 0.0f;
 		for (const char* item : items)
 			width += ImGui::CalcTextSize(item).x + style.FramePadding.x * 2.0f;
 
@@ -68,7 +67,7 @@ namespace ImGui
 		    ImGui::GetColorU32(ImGuiCol_FrameBg),
 		    rounding);
 
-		float x = startPos.x;
+		float x   = startPos.x;
 		int index = 0;
 
 		for (const char* item : items)
@@ -81,20 +80,23 @@ namespace ImGui
 			bool pressed = ImGui::InvisibleButton(item, itemSize);
 			bool hovered = ImGui::IsItemHovered();
 			bool selected = (*current == index);
-			if (selected || hovered)
+			if (selected)
 			{
 				drawList->AddRectFilled(
 				    itemPos,
 				    itemPos + itemSize,
-				    ImGui::GetColorU32(selected ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered),
+				    ImGui::GetColorU32(ImGuiCol_ButtonActive),
 				    rounding);
 			}
 
 			ImVec2 textSize = ImGui::CalcTextSize(item);
 			drawList->AddText(
 			    itemPos + ImVec2((itemWidth - textSize.x) * 0.5f, (height - textSize.y) * 0.5f),
-			    ImGui::GetColorU32(selected ? ImGuiCol_Text : ImGuiCol_TextDisabled), 
+			    ImGui::GetColorU32(selected || hovered ? ImGuiCol_Text : ImGuiCol_TextDisabled), 
 				item);
+
+			if (hovered)
+				ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
 			if (pressed)
 				*current = index;

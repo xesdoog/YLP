@@ -46,11 +46,12 @@ namespace YLP::LuaJIT
 		void Reload();
 		void Unload();
 		void Execute(const std::string_view& code);
-		void RegisterTask(sol::protected_function func, std::chrono::milliseconds delayMs = 0ms);
 		void RegisterProcessWatcher(const std::string& processName, sol::protected_function callback, std::chrono::milliseconds delayMs);
 		void DispatchProcessWatchers(const std::chrono::steady_clock::time_point& tickStart);
 		void RegisterShutdownCallback(sol::protected_function callback);
 		void Tick();
+
+		void RegisterTask(sol::protected_function func, std::chrono::milliseconds delayMs = 0ms, std::vector<sol::object> args = {});
 
 		const bool IsSafeToUnload() const noexcept;
 		const bool IsRunningTasks() const noexcept;
@@ -64,13 +65,12 @@ namespace YLP::LuaJIT
 		fs::path GetRoot() const noexcept;
 
 	private:
-
 		struct LuaTask
 		{
 			sol::thread m_Thread;
 			sol::coroutine m_Coroutine;
 			std::chrono::steady_clock::time_point m_NextRun;
-
+			std::vector<sol::object> m_Args;
 		};
 
 		struct LuaProcessWatcher
@@ -90,13 +90,13 @@ namespace YLP::LuaJIT
 
 		std::mutex m_ProcessWatcherMutex;
 		std::mutex m_TaskMutex{};
-		std::vector<LuaTask> m_Tasks;
-		std::atomic_bool m_IsRunningTasks{false};
 
+		std::vector<LuaTask> m_Tasks{};
 		std::vector<sol::protected_function> m_ShutdownCallbacks{};
-		std::vector<LuaProcessWatcher> m_PendingProcessWatchers;
 		std::vector<LuaProcessWatcher> m_ProcessWatchers{}; // was named m_ProcessHandlers but it looked a lot like m_ProcessHandles
-		std::chrono::time_point<std::chrono::steady_clock> m_LastProcessPollTime;
+
+		std::atomic_bool m_IsRunningTasks{false};
+		std::chrono::time_point<std::chrono::steady_clock> m_LastProcessPollTime{};
 
 		DirectoryWatcher m_DirectoryWatcher; // was initially part of LuaManager
 	};
@@ -108,7 +108,7 @@ namespace YLP::LuaJIT
 		if (!ptr.is<void*>())
 		{
 			if (errorMsg.has_value())
-				sv.safe_script(errorMsg.value().data());
+				sv.safe_script(std::format("error('{}', 2)", errorMsg.value().data()));
 			else
 				LOG_ERROR("Module pointer is null!");
 

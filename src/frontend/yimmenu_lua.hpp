@@ -17,10 +17,11 @@
 
 #pragma once
 
-#include "core/gui/gui_tab.hpp"
-#include <core/github/gitmgr.hpp>
-#include <core/gui/renderer.hpp>
-#include <core/gui/fonts/fonts.hpp>
+#include "../core/gui/gui_tab.hpp"
+#include "../core/github/gitmgr.hpp"
+#include "../core/gui/renderer.hpp"
+#include "../core/gui/fonts/fonts.hpp"
+#include "../core/gui/widgets/ylp_spinner.hpp"
 
 
 namespace YLP::Frontend
@@ -248,13 +249,13 @@ namespace YLP::Frontend
 
 			case GitHubManager::eLoadState::LOADING:
 			{
-				ImVec2 region = ImGui::GetContentRegionAvail();
-				float spinnerRadius = region.x * 0.2f;
-				float spinnerDiameter = spinnerRadius * 2;
-				float spinnerThickness = 4.0f;
-				ImVec2 center = ImVec2((region.x - spinnerDiameter) / 2, (region.y - spinnerRadius) / 2);
-				ImGui::SetCursorPos(center);
-				ImGui::Spinner("##loadrepositories", spinnerRadius, 4.f);
+				auto region		 = ImGui::GetContentRegionAvail();
+				auto minsize	 = std::min(region.x * 0.5f, region.y * 0.5f);
+				auto spinnerSize = ImVec2(minsize, minsize);
+				ImGui::SetCursorPos((ImGui::GetCursorPos() + region - spinnerSize) * 0.5);
+				ImGui::YLPSpinner("##loading", spinnerSize);
+				ImGui::Spacing();
+				ImGui::Text("Loading Lua repositories...");
 				break;
 			}
 			case GitHubManager::eLoadState::READY:
@@ -279,7 +280,6 @@ namespace YLP::Frontend
 				ImGui::PopStyleVar();
 				break;
 			}
-
 			case GitHubManager::eLoadState::FAILED:
 				ImGui::TextColored(ImVec4(1, 0, 0, 1), "Failed to load repositories!");
 				break;

@@ -120,12 +120,17 @@ namespace YLP::LuaJIT
 
 		std::atomic_bool m_Initialized{false};
 		std::atomic_bool m_ShouldReload{false};
+
 		std::mutex m_LoadedModulesMutex{};
 		std::mutex m_DisabledModulesMutex{};
+
 		std::vector<std::shared_ptr<LuaModule>> m_Modules{};
 		std::queue<fs::path> m_LoadQueue{};
 		std::vector<DisabledModule> m_DisabledModules{};
 		std::vector<LuaLibrary*> m_Libraries{};
+
 		std::unique_ptr<LuaModule> m_CodeExecutor{nullptr};
+
+		std::chrono::time_point<std::chrono::steady_clock> m_LastReload{};
 	};
 }

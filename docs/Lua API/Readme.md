@@ -88,8 +88,7 @@ local function test()
     print(string.format("fKickVotesNeededRatio: %.2ff", fKickVotesNeededRatio:ReadFloat()))
 end
 
-YLP.RegisterProcessWatcher("GTA5.exe", function()
-    local process = Process("GTA5.exe")
+YLP.RegisterProcessWatcher("GTA5.exe", function(process --[[This parameter is passed by YLP when the process is found]])
     local ptr = process:FindPattern("48 8D 15 ? ? ? ? 4C 8B C0 E8 ? ? ? ? 48 85 FF 48 89 1D", "Script Globals")
     if (ptr:IsNull()) then
         return

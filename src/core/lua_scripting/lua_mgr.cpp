@@ -251,9 +251,11 @@ namespace YLP::LuaJIT
 
 			std::this_thread::sleep_for(1ms);
 
-			if (m_ShouldReload && m_Modules.empty())
-			{ // TODO: throttle this to prevent UI spam
+			auto now = std::chrono::steady_clock::now();
+			if (m_ShouldReload && m_Modules.empty() && now - m_LastReload >= 1200ms)
+			{
 				m_ShouldReload = false;
+				m_LastReload   = now;
 				ReloadAllModulesImpl();
 			}
 		}

@@ -52,17 +52,17 @@ namespace YLP::LuaJIT
 
 			* method Add
 			* param offset<integer> The offset to add
-			* return Pointer -- A new pointer at the new address.
+			* return Pointer ptr A new pointer at the new address.
 
 			* method Sub
 			* param offset<integer> The offset to subtract.
-			* return Pointer -- A new pointer at the new address.
+			* return Pointer ptr A new pointer at the new address.
 
 			* method Rip
-			* return Pointer -- A new pointer at the resolved RIP-relative address.
+			* return Pointer ptr A new pointer at the resolved RIP-relative address.
 
 			* method Dereference
-			* return Pointer -- A new pointer at the dereferenced address.
+			* return Pointer ptr A new pointer at the dereferenced address.
 
 			* method GetAddress
 			* return integer address The pointer's memory address.

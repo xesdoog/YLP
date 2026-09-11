@@ -28,7 +28,7 @@ namespace YLP::LuaJIT
 		using LuaLibrary::LuaLibrary;
 
 	private:
-		static inline void RegisterTask(sol::protected_function func, sol::optional<int> delay, sol::this_state s)
+		static inline void register_task(sol::protected_function func, sol::optional<int> delay, sol::this_state s)
 		{
 			auto luaModule = GetModuleFromLuaState(s.lua_state(), "Failed to register task! Module pointer is null.");
 			if (!luaModule)
@@ -61,11 +61,11 @@ namespace YLP::LuaJIT
 
 			auto taskTable = L["Task"].get_or_create<sol::table>();
 			taskTable["Run"] = [](sol::protected_function func, sol::this_state state) {
-				RegisterTask(func, 0, state);
+				register_task(func, 0, state);
 			};
 
 			taskTable["RunDelayed"] = [](int delayMs, sol::protected_function func, sol::this_state state) {
-				RegisterTask(func, delayMs, state);
+				register_task(func, delayMs, state);
 			};
 
 			taskTable["Sleep"] = sol::yielding([](int millis) { return millis; });

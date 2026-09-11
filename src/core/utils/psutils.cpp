@@ -38,7 +38,7 @@ namespace YLP::PsUtils
 		return r;
 	}
 
-	void ProcessList::StartUpdating()
+	void ProcessList::StartUpdatingImpl()
 	{
 		if (m_Running)
 			return;
@@ -56,7 +56,7 @@ namespace YLP::PsUtils
 		});
 	}
 
-	void ProcessList::StopUpdating()
+	void ProcessList::StopUpdatingImpl()
 	{
 		if (!m_Running)
 			return;
@@ -65,21 +65,22 @@ namespace YLP::PsUtils
 		m_ConVar.notify_all();
 	}
 
-	std::vector<ProcessEntry> ProcessList::GetSnapshot()
+	const std::vector<ProcessEntry> ProcessList::GetSnapshotImpl()
 	{
 		std::scoped_lock lock(m_Mutex);
 		return m_Processes;
 	}
 
-	void ProcessList::UpdateProcesses()
+	void ProcessList::UpdateProcessesImpl()
 	{
+		if (std::chrono::steady_clock::now() - m_LastUpdated < 1s)
+			return;
+
 		HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 		if (snapshot == INVALID_HANDLE_VALUE)
 			return;
 
-		PROCESSENTRY32W entry{};
-		entry.dwSize = sizeof(entry);
-
+		PROCESSENTRY32W entry{.dwSize = sizeof(entry)};
 		std::vector<ProcessEntry> tempList;
 
 		if (Process32FirstW(snapshot, &entry))
@@ -88,18 +89,14 @@ namespace YLP::PsUtils
 			{
 				char name[260];
 				WideCharToMultiByte(CP_UTF8, 0, entry.szExeFile, -1, name, sizeof(name), nullptr, nullptr);
-
-				ProcessEntry proc;
-				proc.m_Name = name;
-				proc.m_Pid = entry.th32ProcessID;
-				// proc.m_Icon = GetProcessIconTexture(entry.th32ProcessID, name);
-				tempList.push_back(proc);
+				tempList.push_back({.m_Name = name, .m_Pid = entry.th32ProcessID});
 			} while (Process32NextW(snapshot, &entry));
 		}
 
 		CloseHandle(snapshot);
 		std::scoped_lock lock(m_Mutex);
 		m_Processes.swap(tempList);
+		m_LastUpdated = std::chrono::steady_clock::now();
 	}
 
 	std::optional<DWORD> WaitForProcessExit(HANDLE hProc, DWORD timeoutMs)
@@ -213,32 +210,12 @@ namespace YLP::PsUtils
 
 	std::optional<DWORD> GetProcessId(std::string_view name)
 	{
-		if (name.empty())
-			return std::nullopt;
-
-		int req = MultiByteToWideChar(CP_UTF8, 0, name.data(), static_cast<int>(name.size()), nullptr, 0);
-		if (req <= 0)
-			return std::nullopt;
-
-		std::vector<wchar_t> wbuf(req + 1);
-		MultiByteToWideChar(CP_UTF8, 0, name.data(), static_cast<int>(name.size()), wbuf.data(), req);
-		wbuf[req] = L'\0';
-
-		ScopedHandle snap(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
-		if (!snap)
-			return std::nullopt;
-
-		PROCESSENTRY32W pe{};
-		pe.dwSize = sizeof(pe);
-
-		if (!Process32FirstW(snap.Get(), &pe))
-			return std::nullopt;
-
-		do
+		ProcessList::UpdateProcesses();
+		for (auto& entry : ProcessList::GetSnapshot())
 		{
-			if (_wcsicmp(pe.szExeFile, wbuf.data()) == 0)
-				return static_cast<int>(pe.th32ProcessID);
-		} while (Process32NextW(snap.Get(), &pe));
+			if (entry.m_Name == name)
+				return entry.m_Pid;
+		}
 
 		return std::nullopt;
 	}

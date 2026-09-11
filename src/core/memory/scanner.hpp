@@ -20,6 +20,11 @@ namespace YLP
 		explicit ProcessScanner(const std::string& processName);
 		~ProcessScanner();
 
+		ProcessScanner(const ProcessScanner&)				 = delete;
+		ProcessScanner& operator=(const ProcessScanner&)	 = delete;
+		ProcessScanner(ProcessScanner&&) noexcept            = default;
+		ProcessScanner& operator=(ProcessScanner&&) noexcept = default;
+
 		bool FindProcess();
 		bool IsProcessRunning() const;
 		bool IsModuleLoaded(const std::string& moduleName);
