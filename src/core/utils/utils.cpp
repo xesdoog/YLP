@@ -99,10 +99,10 @@ namespace YLP::Utils
 				else
 					buffer.insert(buffer.end(), temp.begin(), temp.begin() + bytesRead);
 
-				if (outProgress && contentLength > 0)
-					*outProgress = (static_cast<float>(totalRead) / static_cast<float>(contentLength));
-
 				totalRead += bytesRead;
+
+				if (outProgress && contentLength > 0)
+					*outProgress = static_cast<float>(totalRead) / static_cast<float>(contentLength);
 			}
 
 			if (outFile)
@@ -112,8 +112,8 @@ namespace YLP::Utils
 
 			response.success = (response.status >= 200 && response.status < 300);
 
-			if (outProgress)
-				*outProgress = 1.0f - 0.02f * *outProgress + 0.02f * 1.0f;
+			if (outProgress && contentLength > 0)
+				*outProgress = 1.0f;
 		}
 		catch (const std::exception& e)
 		{

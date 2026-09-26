@@ -161,7 +161,6 @@ namespace YLP::Frontend
 			if (menu || menu.GetState() == YimMenu::eMenuViewState::Downloading)
 				return;
 
-			ImGui::SameLine();
 			if (ImGui::Button(ICON_MS_DOWNLOAD " Download", ButtonBig))
 			{
 				ThreadManager::Run([&menu] {
@@ -173,27 +172,28 @@ namespace YLP::Frontend
 		void DrawMenuControls(YimMenu& menu)
 		{
 			auto state = menu.GetState();
-			auto& cfg  = Config();
-
-			const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
-			bool wantsAutoInject        = (cfg.autoMonitorFlags & monitorTarget) != 0;
-			bool wantsAutoUpdate        = (cfg.menuAutoUpdateFlags & monitorTarget) != 0;
-
-			ImGui::BeginDisabled(state != YimMenu::eMenuViewState::Idle);
-			if (ImGui::Checkbox("Auto-Inject", &wantsAutoInject))
+			if (menu)
 			{
-				cfg.autoMonitorFlags ^= monitorTarget;
-				SwitchMonitorMode();
-			}
+				auto& cfg                   = Config();
+				const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
+				bool wantsAutoInject        = (cfg.autoMonitorFlags & monitorTarget) != 0;
+				bool wantsAutoUpdate        = (cfg.menuAutoUpdateFlags & monitorTarget) != 0;
 
-			if (ImGui::Checkbox("Auto-Update", &wantsAutoUpdate))
-				cfg.menuAutoUpdateFlags ^= monitorTarget;
+				ImGui::BeginDisabled(state != YimMenu::eMenuViewState::Idle);
+				if (ImGui::Checkbox("Auto-Inject", &wantsAutoInject))
+				{
+					cfg.autoMonitorFlags ^= monitorTarget;
+					SwitchMonitorMode();
+				}
 
-			ImGui::EndDisabled();
-			ImGui::Spacing();
+				if (ImGui::Checkbox("Auto-Update", &wantsAutoUpdate))
+					cfg.menuAutoUpdateFlags ^= monitorTarget;
 
-			switch (state)
-			{
+				ImGui::EndDisabled();
+				ImGui::Spacing();
+
+				switch (state)
+				{
 				case YimMenu::eMenuViewState::PendingUpdate:
 				{
 					if (ImGui::Button(ICON_MS_UPDATE))
@@ -212,8 +212,8 @@ namespace YLP::Frontend
 					break;
 				case YimMenu::eMenuViewState::Idle:
 				{
-				    ImGui::BeginDisabled(wantsAutoUpdate);
-				    if (ImGui::Button(ICON_MS_SYNC))
+					ImGui::BeginDisabled(wantsAutoUpdate);
+					if (ImGui::Button(ICON_MS_SYNC))
 					{
 						ThreadManager::Run([&menu] {
 							menu.CheckForUpdates();
@@ -221,15 +221,12 @@ namespace YLP::Frontend
 					}
 					ImGui::SameLine();
 					ImGui::Text("Check For Updates");
-				    ImGui::EndDisabled();
-				    break;
+					ImGui::EndDisabled();
+					break;
 				}
-			    default: break;
+				default: break;
+				}
 			}
-
-			float anchorPos = ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2);
-			if (anchorPos > 0)
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + anchorPos);
 
 			if (state == YimMenu::eMenuViewState::Downloading)
 				ImGui::ProgressBar(menu.m_DownloadProgress, ButtonBig);
@@ -246,6 +243,10 @@ namespace YLP::Frontend
 			auto injectLabel			= injected ? ICON_MS_CHECK_CIRCLE_OUTLINE " Injected" : ICON_MS_SYRINGE " Inject";
 
 			ImGui::Spacing();
+			float anchorPos = ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2);
+			if (anchorPos > 0)
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + anchorPos);
+
 			ImGui::BeginDisabled(disabledCond);
 			if (ImGui::Button(injectLabel, ButtonBig))
 			{
@@ -398,10 +399,6 @@ namespace YLP::Frontend
 			ImGui::SetNextWindowBgAlpha(0.f);
 			ImGui::BeginChild("##controls", ImVec2(menuChildWidth, 0), 0, ImGuiWindowFlags_AlwaysUseWindowPadding);
 			DrawMenuControls(menu);
-
-			float anchorPos = ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2);
-			if (anchorPos > 0)
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + anchorPos);;
 			DrawMenuDownload(menu);
 			DrawInjectButton(menu, isRunning, injected);
 			ImGui::EndChild();

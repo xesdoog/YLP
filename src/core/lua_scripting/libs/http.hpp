@@ -79,8 +79,7 @@ namespace YLP::LuaJIT
 				},
 			    [](const std::string& host, const std::string& path, const sol::table& optHeaders, const LuaPath& outFile) {
 				    return HttpRequest(UTF8ToWide(host), UTF8ToWide(path), ParseHeaders(optHeaders), &outFile.Get());
-				});
-
+			    });
 
 			/* @ylp.table HttpResponse
 			* description

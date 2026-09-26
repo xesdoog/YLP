@@ -185,8 +185,8 @@ namespace YLP::LuaJIT
 				    Injector::InjectResult res   = Injector::Inject(processName, dllPath.Get(), cfg);
 				    return std::make_tuple(res.m_Success, res.m_Message);
 			    },
-			    [](const LuaPath& dllPath, const std::string& processName, bool manualMap, sol::optional<sol::table> manualMappingConfig) {
-				    auto args                    = manualMappingConfig.value_or(sol::table());
+			    [&](const LuaPath& dllPath, const std::string& processName, bool manualMap, sol::optional<sol::table> manualMappingConfig) {
+				    auto args                    = manualMappingConfig.value_or(L.create_table());
 				    Injector::InjectorConfig cfg = {
 				        .m_Mode             = manualMap ? 1 : 0,
 				        .m_WipePE           = args["eraseHeaders"].get_or(false),
