@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiPopupFlags
+---@class ImGuiPopupFlags : integer
 ---@field None integer 
 ---@field MouseButtonLeft integer For BeginPopupContext*(): open on Left Mouse release. Guaranteed to always be == 0 (same as ImGuiMouseButton_Left)
 ---@field MouseButtonRight integer For BeginPopupContext*(): open on Right Mouse release. Guaranteed to always be == 1 (same as ImGuiMouseButton_Right)

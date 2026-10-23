@@ -1,5 +1,3 @@
-<!-- markdownlint-disable MD046 -->
-
 # Builtin LuaJIT
 
 > [!Warning]
@@ -15,23 +13,97 @@ Since most of YLP's users are technical enough and almost all of them come from 
 
 As of now, the API is in its baby stage so expect bugs and possibly undefined behavior.
 
-## Plugin Structure
+## Basic Code Example
 
-Lua plugins must be placed in their own subfolders inside `%AppData%\YLP\Plugins` and **must** have a main entry file named `main.lua`. You can have as many subfolders and files as you want inside your plugin directory, but only main.lua will be automatically loaded when YLP starts. Example:
+To demonstrate what you can currently do with the Lua API, here's an example GTA V Legacy `ScriptGlobal` implementation:
 
-```bash
-├─ YLP/
-│  ├─ Plugins/
-│  │  ├─ disabled/      # disabled modules.
-│  │  ├─ shared/        # shared modules that can be imported by any plugin. You can place icons.lua from "docs/Lua API/shared" in this folder to use Icons in your ImGui code.
-│  │  └─ MyCustomPlugin # Your plugin.
-│  │     ├─ includes/   # Optional subfolder to neatly store any other files that may be required by your plugin. Folder name and contents do not matter to YLP.
-│  │     └─ main.lua    # Your plugin's entry point. Without this file, your plugin will not be loaded.
+```Lua
+local SG_PTR ---@type Pointer?
+
+------------------------------------
+------------------------------------
+------------------------------------
+
+---@class ScriptGlobal
+---@field private m_ptr Pointer
+---@overload fun(address: integer): ScriptGlobal
+local ScriptGlobal = setmetatable({}, {
+    __call = function(t, address)
+        return t:new(address)
+    end
+}); ScriptGlobal.__index = ScriptGlobal
+
+---@param ptr Pointer
+---@return ScriptGlobal
+local function fromptr(ptr)
+    ---@diagnostic disable-next-line
+    return setmetatable({ m_ptr = ptr }, ScriptGlobal)
+end
+
+---@param index integer
+---@return ScriptGlobal
+function ScriptGlobal:new(index)
+    assert(SG_PTR and not SG_PTR:IsNull(), "Globals table pointer is null!")
+    assert(type(index) == "number", "Address must be an integer.")
+    return setmetatable({
+        m_ptr = SG_PTR:Add(((index >> 0x12) & 0x3F) * 8):Dereference():Add((index & 0x3FFFF) * 8)
+    }, self)
+end
+
+---@nodiscard
+---@return boolean
+function ScriptGlobal:IsValid()
+    return self.m_ptr:GetAddress() >= 0x1000
+end
+
+---@param offset number
+function ScriptGlobal:At(offset)
+    return fromptr(self.m_ptr:Add(offset * 8))
+end
+
+---@return integer
+function ScriptGlobal:GetAddress()
+    return self.m_ptr:GetAddress()
+end
+
+-- For the sake of testing, we're only going to define a `ReadFloat` method.
+--
+-- You can add all read/write methods from the [Pointer](lua://Pointer) class.
+---@return number
+function ScriptGlobal:ReadFloat()
+    return self.m_ptr:ReadFloat()
+end
+
+----------------------------------------
+----------------------------------------
+----------------------------------------
+
+local function test()
+    local fKickVotesNeededRatio = ScriptGlobal(262145):At(6)
+    if (not fKickVotesNeededRatio:IsValid()) then
+        log.warning("Please reload the script after loading into a game mode.")
+        return
+    end
+
+    printf("fKickVotesNeededRatio: %.2ff", fKickVotesNeededRatio:ReadFloat())
+end
+
+YLP.RegisterProcessWatcher("GTA5.exe", function(process --[[This parameter is passed by YLP when the process is found]])
+    local ptr = process:FindPattern("48 8D 15 ? ? ? ? 4C 8B C0 E8 ? ? ? ? 48 85 FF 48 89 1D", "Script Globals")
+    if (ptr:IsNull()) then
+        return
+    end
+
+    SG_PTR = ptr:Add(0x3):Rip()
+    test()
+end)
+
 ```
 
-## Usage Example
+>[!Note]
+>The example code above is GTA V-specific but the underlying API is not. [Process](./Docs/Process.md) and [Pointer](./Docs/Pointer.md) operate on arbitrary processes so Lua scripts can be used to extend YLP for other applications and modding frameworks as well.
 
-A few example scripts can be found in the [Examples](./Examples/) folder.
+The Lua API is not limited to making external basic cheats similar to the example above, *(actually that's a side effect)*. It was mainly implemented to allow you to to do pretty much the exact thing YLP currently does to [maintain](../../src/core/YimMenu/yimmenu.hpp) and [auto-inject](../../src/core/memory/pointers.cpp) YimMenu for any other mod/game combo using its [Task](./Docs/Task.md), [Filesystem](./Docs/Filesystem.md), [Path](./Docs/Path.md), basic [HTTP](./Docs/HTTP.md) `GET` requests, and the [DLL injection function](./Docs/YLP.md#injectdll).
 
 For advanced users, the `JIT` and `FFI` libs are open. `debug` is not. If you experience crashes/instability with certain shared modules *(JSON/XML parsers, web scrapers, etc.)* try disabling jit either for those specific modules only or for your entire plugin.
 
@@ -75,13 +147,13 @@ The embedded version is v2.1 with 3.0 extensions backport. These extensions incl
 - **Bit Operators:**
 
     ```Lua
-    local x = a & b
-    local y = a | b
-    local z = a ~ b
-    local w = ~a
-    local foo = a << 4
-    local bar = a >> 2
-    local baz = a ~>> 0
+        local x = a & b
+        local y = a | b
+        local z = a ~ b
+        local w = ~a
+        local foo = a << 4
+        local bar = a >> 2
+        local baz = a ~>> 0
     ```
 
 - **C-style Operators:**

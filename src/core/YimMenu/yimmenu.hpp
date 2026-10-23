@@ -254,17 +254,15 @@ namespace YLP
 
 		void CheckForUpdates()
 		{
-			if (m_State == Checking)
+			if (m_State == Checking || !SanityCheck())
 				return;
 
-			std::scoped_lock lock(m_Mutex);
-			m_State = Checking;
-
-			if (!SanityCheck())
-				return;
+			m_State         = Checking;
+			bool autoupdate = false;
 
 			try
 			{
+				std::scoped_lock lock(m_Mutex);
 				LOG_INFO("[{}]: Checking for updates...", m_Name);
 				auto remote_sha = Utils::RegexMatchHtml(
 				    m_ReleaseUrl.first,
@@ -293,13 +291,12 @@ namespace YLP
 				{
 					const uint8_t flag = (m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
 					if ((Config().menuAutoUpdateFlags & flag))
+						autoupdate = true;
+					else
 					{
-						Download();
-						return;
+						Notify("A new release is out!", Notifier::Info, true);
+						m_State = PendingUpdate;
 					}
-
-					Notify("A new release is out!", Notifier::Info, true);
-					m_State = PendingUpdate;
 				}
 
 				if (m_LastCommitHash.empty())
@@ -307,8 +304,12 @@ namespace YLP
 			}
 			catch (const std::exception& e)
 			{
+				autoupdate = false;
 				LOG_ERROR("[{}]: An exception has occured: {}", m_Name, e.what());
 			}
+
+			if (autoupdate)
+				Download();
 		}
 
 		Injector::InjectResult Inject()

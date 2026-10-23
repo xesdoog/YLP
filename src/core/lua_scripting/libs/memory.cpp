@@ -28,7 +28,6 @@ namespace YLP::LuaJIT
 {
 	using namespace Memory;
 
-	// TODO
 	class LuaMemLib : public LuaLibrary
 	{
 		using LuaLibrary::LuaLibrary;

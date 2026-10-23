@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiMouseCursor
+---@class ImGuiMouseCursor : integer
 ---@field None integer 
 ---@field Arrow integer 
 ---@field TextInput integer When hovering over InputText, etc.

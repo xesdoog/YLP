@@ -17,6 +17,7 @@
 
 #include "procmon.hpp"
 #include "core/gui/gui.hpp"
+#include "pointers.hpp"
 
 
 namespace YLP

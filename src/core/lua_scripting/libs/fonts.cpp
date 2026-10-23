@@ -24,8 +24,6 @@
 
 namespace YLP::LuaJIT
 {
-	using namespace YLP::Utils;
-
 	class LuaFontsLib : public LuaLibrary
 	{
 		using LuaLibrary::LuaLibrary;

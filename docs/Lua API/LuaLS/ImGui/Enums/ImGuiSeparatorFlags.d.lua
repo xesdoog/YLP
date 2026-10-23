@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiSeparatorFlags
+---@class ImGuiSeparatorFlags : integer
 ---@field None integer 
 ---@field Horizontal integer Axis default to current layout type, so generally Horizontal unless e.g. in a menu bar
 ---@field Vertical integer 

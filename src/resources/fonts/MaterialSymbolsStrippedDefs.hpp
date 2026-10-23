@@ -47,11 +47,13 @@ along with YLP.  If not, see <https://www.gnu.org/licenses/>.
 #define ICON_MS_FILTER_LIST                              "\xEE\x85\x92" // U+E152
 #define ICON_MS_FOLDER                                   "\xEE\x8B\x87" // U+E2C7
 #define ICON_MS_HELP                                     "\xEE\xA3\xBD" // U+E8FD
+#define ICON_MS_HISTORY                                  "\xEE\xA2\xB3" // U+E8B3
 #define ICON_MS_HOME_APP_LOGO                            "\xEE\x8A\x95" // U+E295
 #define ICON_MS_HOURGLASS_BOTTOM                         "\xEE\xA9\x9C" // U+EA5C
 #define ICON_MS_HOURGLASS_EMPTY                          "\xEE\xA2\x8B" // U+E88B
 #define ICON_MS_HOURGLASS_TOP                            "\xEE\xA9\x9B" // U+EA5B
 #define ICON_MS_INFO                                     "\xEE\xA2\x8E" // U+E88E
+#define ICON_MS_INSTALL_DESKTOP                          "\xEE\xAD\xB1" // U+EB71
 #define ICON_MS_LIST                                     "\xEE\xA2\x96" // U+E896
 #define ICON_MS_MEMORY                                   "\xEE\x8C\xA2" // U+E322
 #define ICON_MS_MESSAGE                                  "\xEE\x83\x89" // U+E0C9
@@ -73,6 +75,8 @@ along with YLP.  If not, see <https://www.gnu.org/licenses/>.
 #define ICON_MS_SDK                                      "\xEE\x9C\xA0" // U+E720
 #define ICON_MS_SEARCH                                   "\xEE\xBD\xBA" // U+EF7A
 #define ICON_MS_SETTINGS                                 "\xEE\xA2\xB8" // U+E8B8
+#define ICON_MS_SORT                                     "\xEE\x85\xA4" // U+E164
+#define ICON_MS_SORT_BY_ALPHA                            "\xEE\x81\x93" // U+E053
 #define ICON_MS_STAR                                     "\xEF\x82\x9A" // U+F09A
 #define ICON_MS_SYNC                                     "\xEE\x98\xA7" // U+E627
 #define ICON_MS_SYRINGE                                  "\xEE\x84\xB3" // U+E133

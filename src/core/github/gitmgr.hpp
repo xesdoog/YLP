@@ -160,10 +160,19 @@ namespace YLP
 		static inline std::filesystem::path m_ScriptsPath;
 
 		static inline const std::vector<std::string> m_IgnoreList = {
-		    "YimLLS",
+		    "YimLLS", // dev-only
+		    "YimConfig", //
+		    "YimToast", //
+
 		    "Example",
-		    "submission",
-		    "SAMURAI-Scenarios",
-		    "SAMURAI-Animations"};
+		    "submission", // bot
+
+		    "SAMURAI-Scenarios", // deprecated
+		    "SAMURAI-Animations", //
+
+		    "heist-editior", // empty
+		    "Heist-Editor", //
+		    "YimMenu-Lua-heist-editior" //
+		};
 	};
 }

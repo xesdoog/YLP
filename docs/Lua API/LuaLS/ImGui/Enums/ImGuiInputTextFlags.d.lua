@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiInputTextFlags
+---@class ImGuiInputTextFlags : integer
 ---@field None integer 
 ---@field CharsDecimal integer Allow 0123456789.+-* /
 ---@field CharsHexadecimal integer Allow 0123456789ABCDEFabcdef

@@ -10,7 +10,7 @@ The provided [example.json](./example.json) file can be used as a template. You 
 
 - [ImGui#707](https://github.com/ocornut/imgui/issues/707)
 - ["SSV2"](https://github.com/YimMenu-Lua/Samurais-Scripts/blob/main/SSV2/includes/lib/theme_library.lua)
-- [ImThemes](github.com/Patitotective/ImThemes)
+- [ImThemes](https://github.com/Patitotective/ImThemes)
 
 > [!Note]
 > You must resart the program after making changes to the themes folder.

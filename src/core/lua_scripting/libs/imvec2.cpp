@@ -22,8 +22,6 @@
 
 namespace YLP::LuaJIT
 {
-	using namespace YLP::Utils;
-
 	class LuaImVec2Lib : public LuaLibrary
 	{
 		using LuaLibrary::LuaLibrary;

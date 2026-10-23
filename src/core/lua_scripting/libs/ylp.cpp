@@ -19,6 +19,7 @@
 
 #include "../lua_library.hpp"
 #include "../lua_module.hpp"
+#include "../lua_path.hpp"
 
 #include "core/updater.hpp"
 #include "core/injector/injector.hpp"
@@ -181,30 +182,33 @@ namespace YLP::LuaJIT
 
 			ylpTable["InjectDll"] = sol::overload(
 			    [](const LuaPath& dllPath, const std::string& processName) {
-				    Injector::InjectorConfig cfg = {.m_Mode = 0};
-				    Injector::InjectResult res   = Injector::Inject(processName, dllPath.Get(), cfg);
+				    Injector::InjectorConfig cfg{.m_Mode = 0};
+
+				    Injector::InjectResult res = Injector::Inject(processName, dllPath.Get(), cfg);
 				    return std::make_tuple(res.m_Success, res.m_Message);
 			    },
 			    [&](const LuaPath& dllPath, const std::string& processName, bool manualMap, sol::optional<sol::table> manualMappingConfig) {
-				    auto args                    = manualMappingConfig.value_or(L.create_table());
-				    Injector::InjectorConfig cfg = {
+				    auto args = manualMappingConfig.value_or(L.create_table());
+
+				    Injector::InjectorConfig cfg{
 				        .m_Mode             = manualMap ? 1 : 0,
 				        .m_WipePE           = args["eraseHeaders"].get_or(false),
 				        .m_RandomizeAddress = args["randomizeBaseAddress"].get_or(false),
-				        .m_EnableSEH        = args["enableSEH"].get_or(false)};
+				        .m_EnableSEH        = args["enableSEH"].get_or(false)
+					};
 
 				    Injector::InjectResult res = Injector::Inject(processName, dllPath.Get(), cfg);
 				    return std::make_tuple(res.m_Success, res.m_Message);
 			    });
 
 			ylpTable["OnShutdown"] = [&](sol::protected_function callback) {
-				if (auto module = GetModuleFromLuaState(L))
-					module->RegisterShutdownCallback(callback);
+				if (auto mod = GetModuleFromLuaState(L))
+					mod->RegisterShutdownCallback(callback);
 			};
 
 			ylpTable["UnloadThisModule"] = [&]() {
-				if (auto module = GetModuleFromLuaState(L))
-					module->m_UnloadFromCode = true;
+				if (auto mod = GetModuleFromLuaState(L))
+					mod->m_UnloadFromCode = true;
 			};
 		}
 	};

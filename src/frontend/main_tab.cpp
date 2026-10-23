@@ -212,16 +212,18 @@ namespace YLP::Frontend
 					break;
 				case YimMenu::eMenuViewState::Idle:
 				{
-					ImGui::BeginDisabled(wantsAutoUpdate);
-					if (ImGui::Button(ICON_MS_SYNC))
+					if (!wantsAutoUpdate)
 					{
-						ThreadManager::Run([&menu] {
-							menu.CheckForUpdates();
-						});
+						if (ImGui::Button(ICON_MS_SYNC))
+						{
+							ThreadManager::Run([&menu] {
+								menu.CheckForUpdates();
+							});
+						}
+
+						ImGui::SameLine();
+						ImGui::Text("Check For Updates");
 					}
-					ImGui::SameLine();
-					ImGui::Text("Check For Updates");
-					ImGui::EndDisabled();
 					break;
 				}
 				default: break;
@@ -238,9 +240,11 @@ namespace YLP::Frontend
 				return;
 
 			const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
-			bool wantsAutoInject		= (Config().autoMonitorFlags & monitorTarget) != 0;
-			bool disabledCond			= (wantsAutoInject || injected || !running);
-			auto injectLabel			= injected ? ICON_MS_CHECK_CIRCLE_OUTLINE " Injected" : ICON_MS_SYRINGE " Inject";
+			if ((Config().autoMonitorFlags & monitorTarget))
+				return;
+
+			bool disabledCond = (injected || !running);
+			auto injectLabel  = injected ? ICON_MS_CHECK_CIRCLE_OUTLINE " Injected" : ICON_MS_SYRINGE " Inject";
 
 			ImGui::Spacing();
 			float anchorPos = ImGui::GetContentRegionAvail().y - ButtonBig.y - (ImGui::GetStyle().FramePadding.y * 2);

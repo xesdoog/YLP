@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiChildFlags
+---@class ImGuiChildFlags : integer
 ---@field None integer 
 ---@field Borders integer Show an outer border and enable WindowPadding. (IMPORTANT: this is always == 1 == true for legacy reason)
 ---@field AlwaysUseWindowPadding integer Pad with style.WindowPadding even if no border are drawn (no padding by default for non-bordered child windows because it makes more sense)

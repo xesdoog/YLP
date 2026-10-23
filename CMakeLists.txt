@@ -12,19 +12,6 @@ project(YLP LANGUAGES C CXX ASM_MASM)
 set(CMAKE_CXX_STANDARD 23)
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
-file(GLOB LUA_LIB_HEADERS "${SRC_DIR}/core/lua_scripting/libs/*.hpp")
-set(LUA_LIB_LOADER "${SRC_DIR}/core/lua_scripting/lib_loader.hpp")
-
-if(EXISTS "${LUA_LIB_LOADER}")
-    file(REMOVE "${LUA_LIB_LOADER}")
-endif()
-
-file(WRITE "${LUA_LIB_LOADER}" "// CMake auto-generated file\n\n#pragma once\n\n")
-foreach(LIB ${LUA_LIB_HEADERS})
-    get_filename_component(LIB_NAME "${LIB}" NAME)
-    file(APPEND "${LUA_LIB_LOADER}" "#include \"libs/${LIB_NAME}\"\n")
-endforeach()
-
 file(GLOB_RECURSE SRC_FILES
     "${SRC_DIR}/*.h"
     "${SRC_DIR}/*.hpp"

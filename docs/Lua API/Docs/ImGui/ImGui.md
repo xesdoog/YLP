@@ -65,6 +65,8 @@ function ImGui.Text(text, ...) end
 function ImGui.TextCentered(text, font, customWidth) end
 ```
 
+Draws a text centered at either the current available region's width or the specified optional width.
+
 ### Parameters
 
 | Name | Type | Description |
@@ -133,6 +135,8 @@ function ImGui.TextColored(r, g, b, a, text, ...) end
 ```lua
 function ImGui.TitleText(text, separator) end
 ```
+
+Draws a large and bold text.
 
 ### Parameters
 
@@ -213,7 +217,7 @@ function ImGui.ArrowButton(label, direction) end
 ## `InvisibleButton`
 
 ```lua
-function ImGui.InvisibleButton(label, sizeX, sizeY) end
+function ImGui.InvisibleButton(label, size) end
 ```
 
 ### Parameters
@@ -221,8 +225,7 @@ function ImGui.InvisibleButton(label, sizeX, sizeY) end
 | Name | Type | Description |
 | --- | --- | --- |
 | `label` | `string` |  |
-| `sizeX` | `number` | Button width |
-| `sizeY` | `number` | Button height |
+| `size` | `ImVec2` |  |
 
 ### Returns
 
@@ -465,6 +468,8 @@ function ImGui.MenuItem(label, selected) end
 ```lua
 function ImGui.BeginDisabled(cond) end
 ```
+
+Disables all ImGui widgets created between this call and EndDisabled
 
 ### Parameters
 
@@ -1277,11 +1282,50 @@ function ImGui.SetMouseCursor(cursorIdx) end
 | --- | --- | --- |
 | `cursorIdx` | `integer` | [ImGuiMouseCursor](./ImGuiMouseCursor.md) index |
 
+## `SetTooltip`
+
+```lua
+function ImGui.SetTooltip(text, ...) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `text` | `string` |  |
+| `...` | `any` | Optional format args |
+
+## `BeginTooltip`
+
+```lua
+function ImGui.BeginTooltip() end
+```
+
+## `EndTooltip`
+
+```lua
+function ImGui.EndTooltip() end
+```
+
+## `BeginGroup`
+
+```lua
+function ImGui.BeginGroup() end
+```
+
+## `EndGroup`
+
+```lua
+function ImGui.EndGroup() end
+```
+
 ## `Tooltip`
 
 ```lua
 function ImGui.Tooltip(text) end
 ```
+
+Draws a tooltip when the widget this function is called after is hovered.
 
 ### Parameters
 
@@ -1295,6 +1339,8 @@ function ImGui.Tooltip(text) end
 function ImGui.HelpMarker(text) end
 ```
 
+Draws a help marker (?) symbol in front of the widget this function is called after. When the symbol is hovered, it draws a tooltip.
+
 ### Parameters
 
 | Name | Type | Description |
@@ -1306,6 +1352,8 @@ function ImGui.HelpMarker(text) end
 ```lua
 function ImGui.WarningMarker(text) end
 ```
+
+Draws a warning marker [!] symbol in front of the widget this function is called after. When the symbol is hovered, it draws a tooltip.
 
 ### Parameters
 
@@ -1319,11 +1367,15 @@ function ImGui.WarningMarker(text) end
 function ImGui.Spinner() end
 ```
 
+Draws a spinner indicating 'busy' state.
+
 ## `Spinner`
 
 ```lua
 function ImGui.Spinner(text, radius) end
 ```
+
+Draws a spinner indicating 'busy' state.
 
 ### Parameters
 
@@ -1337,6 +1389,8 @@ function ImGui.Spinner(text, radius) end
 ```lua
 function ImGui.Spinner(text, radius, thickness) end
 ```
+
+Draws a spinner indicating 'busy' state.
 
 ### Parameters
 
@@ -1352,11 +1406,15 @@ function ImGui.Spinner(text, radius, thickness) end
 function ImGui.YLPSpinner() end
 ```
 
+Draws a spinner made out of YLP's logo with a rotating gear and a fixed label.
+
 ## `YLPSpinner`
 
 ```lua
 function ImGui.YLPSpinner(text, radius) end
 ```
+
+Draws a spinner made out of YLP's logo with a rotating gear and a fixed label.
 
 ### Parameters
 
@@ -1370,6 +1428,8 @@ function ImGui.YLPSpinner(text, radius) end
 ```lua
 function ImGui.YLPSpinner(text, radius, speed) end
 ```
+
+Draws a spinner made out of YLP's logo with a rotating gear and a fixed label.
 
 ### Parameters
 

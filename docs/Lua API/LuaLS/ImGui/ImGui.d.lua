@@ -19,6 +19,7 @@ function ImGui.Bullet() end
 ---@param ... any Optional string format arguments
 function ImGui.Text(text, ...) end
 
+-- Draws a text centered at either the current available region's width or the specified optional width.
 ---@param text string 
 ---@param font userdata? Optional font. Use the global [Fonts](lua://Fonts) table to access fonts.
 ---@param customWidth number? Optional width to center at.
@@ -43,6 +44,7 @@ function ImGui.TextUnformatted(text) end
 ---@param ... any Optional string format arguments
 function ImGui.TextColored(r, g, b, a, text, ...) end
 
+-- Draws a large and bold text.
 ---@param text string 
 ---@param separator boolean? Optional: Draw a SeparatorText instead.
 function ImGui.TitleText(text, separator) end
@@ -66,10 +68,9 @@ function ImGui.SmallButton(label) end
 function ImGui.ArrowButton(label, direction) end
 
 ---@param label string 
----@param sizeX number Button width
----@param sizeY number Button height
+---@param size ImVec2 
 ---@return boolean clicked
-function ImGui.InvisibleButton(label, sizeX, sizeY) end
+function ImGui.InvisibleButton(label, size) end
 
 ---@param label string 
 ---@param v boolean 
@@ -144,6 +145,7 @@ function ImGui.Selectable(label, selected, flags, size) end
 ---@return boolean clicked
 function ImGui.MenuItem(label, selected) end
 
+-- Disables all ImGui widgets created between this call and EndDisabled
 ---@param cond boolean? Optional condition
 function ImGui.BeginDisabled(cond) end
 
@@ -402,32 +404,53 @@ function ImGui.PopStyleColor(count) end
 ---@param cursorIdx integer [ImGuiMouseCursor](lua://ImGuiMouseCursor) index
 function ImGui.SetMouseCursor(cursorIdx) end
 
+---@param text string 
+---@param ... any Optional format args
+function ImGui.SetTooltip(text, ...) end
+
+function ImGui.BeginTooltip() end
+
+function ImGui.EndTooltip() end
+
+function ImGui.BeginGroup() end
+
+function ImGui.EndGroup() end
+
+-- Draws a tooltip when the widget this function is called after is hovered.
 ---@param text string Tooltip text
 function ImGui.Tooltip(text) end
 
+-- Draws a help marker (?) symbol in front of the widget this function is called after. When the symbol is hovered, it draws a tooltip.
 ---@param text string Tooltip text
 function ImGui.HelpMarker(text) end
 
+-- Draws a warning marker [!] symbol in front of the widget this function is called after. When the symbol is hovered, it draws a tooltip.
 ---@param text string Tooltip text
 function ImGui.WarningMarker(text) end
 
+-- Draws a spinner indicating 'busy' state.
 function ImGui.Spinner() end
 
+-- Draws a spinner indicating 'busy' state.
 ---@param text string Text to display next to the spinner. Can be an empty or anonymous string: "##blahblah"
 ---@param radius number? Optional spinner radius. Defaults to 10.0
 function ImGui.Spinner(text, radius) end
 
+-- Draws a spinner indicating 'busy' state.
 ---@param text string Text to display next to the spinner. Can be an empty or anonymous string: "##blahblah"
 ---@param radius number spinner radius. Defaults to 10.0
 ---@param thickness number? Optional spinner line thickness. Defaults to 2.0
 function ImGui.Spinner(text, radius, thickness) end
 
+-- Draws a spinner made out of YLP's logo with a rotating gear and a fixed label.
 function ImGui.YLPSpinner() end
 
+-- Draws a spinner made out of YLP's logo with a rotating gear and a fixed label.
 ---@param text string Text to display below the spinner. Can be an empty or anonymous string: "##blahblah"
 ---@param radius number? Optional spinner radius. Defaults to frame height.
 function ImGui.YLPSpinner(text, radius) end
 
+-- Draws a spinner made out of YLP's logo with a rotating gear and a fixed label.
 ---@param text string Text to display below the spinner. Can be an empty or anonymous string: "##blahblah"
 ---@param radius number spinner radius. Defaults to frame height.
 ---@param speed number? Optional spinning speed. Defaults to 2.8

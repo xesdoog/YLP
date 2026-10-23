@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiDir
+---@class ImGuiDir : integer
 ---@field None integer 
 ---@field Left integer 
 ---@field Right integer 

@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiSelectableFlags
+---@class ImGuiSelectableFlags : integer
 ---@field None integer 
 ---@field NoAutoClosePopups integer Clicking this doesn't close parent popup window (overrides ImGuiItemFlags_AutoClosePopups)
 ---@field SpanAllColumns integer Frame will span all columns of its container table (text will still fit in current column)

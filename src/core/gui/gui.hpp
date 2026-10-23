@@ -19,7 +19,6 @@
 
 #include "renderer.hpp"
 #include "gui_tab.hpp"
-#include "../../frontend/__tab_loader.hpp"
 
 
 namespace YLP

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "notifier.hpp"
+
 
 namespace YLP
 {

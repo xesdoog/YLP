@@ -57,6 +57,7 @@ namespace YLP::LuaJIT
 				catch (const LuaPathError& e)
 				{
 					luaL_error(lua.lua_state(), e.what());
+					return sol::make_object(lua, sol::nil);
 				}
 			};
 		};

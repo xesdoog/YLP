@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiSliderFlags
+---@class ImGuiSliderFlags : integer
 ---@field None integer 
 ---@field Logarithmic integer Make the widget logarithmic (linear otherwise). Consider using ImGuiSliderFlags_NoRoundToFormat with this if using a format-string with small amount of digits.
 ---@field NoRoundToFormat integer Disable rounding underlying value to match precision of the display format string (e.g. %.3f values are rounded to those 3 digits).

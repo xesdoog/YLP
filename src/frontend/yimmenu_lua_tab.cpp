@@ -40,14 +40,14 @@ namespace YLP::Frontend
 			eLuaRepoSortMode mode;
 		};
 
-		static constexpr SortOption SortOptions[] = {
-		    {"Recently Updated", eLuaRepoSortMode::COMMIT},
-		    {"Stars", eLuaRepoSortMode::STARS},
-		    {"Name (Descending)", eLuaRepoSortMode::NAME},
-		    {"Installed", eLuaRepoSortMode::INSTALLED},
+		static constexpr inline const SortOption SortOptions[] = {
+		    {ICON_MS_HISTORY " Recently Updated", eLuaRepoSortMode::COMMIT},
+		    {ICON_MS_STAR " Stars", eLuaRepoSortMode::STARS},
+		    {ICON_MS_SORT_BY_ALPHA " Name (Descending)", eLuaRepoSortMode::NAME},
+		    {ICON_MS_INSTALL_DESKTOP " Installed", eLuaRepoSortMode::INSTALLED},
 		};
 
-		const char* GetSortModeName(const eLuaRepoSortMode& mode)
+		static inline const char* GetSortModeName(const eLuaRepoSortMode& mode)
 		{
 			for (const auto& option : SortOptions)
 			{
@@ -58,7 +58,7 @@ namespace YLP::Frontend
 			}
 		}
 
-		void DrawInstalledRepo(const Repository* repo)
+		static inline void DrawInstalledRepo(const Repository* repo)
 		{
 			if (ImGui::ColoredButton(ICON_MS_DELETE, ImVec4(0.95f, 0.20f, 0.20f, 0.69f), 3.0f))
 				GitHubManager::RemoveRepository(repo->name);
@@ -110,7 +110,7 @@ namespace YLP::Frontend
 			ImGui::ToolTip("Open folder");
 		}
 
-		void DrawRepoCard(const Repository* repo)
+		inline void DrawRepoCard(const Repository* repo) const
 		{
 			ImGui::BeginChild(repo->htmlUrl.c_str(), 
 				ImVec2(0, 0), 
@@ -194,17 +194,17 @@ namespace YLP::Frontend
 			auto sortmode = GitHubManager::GetSortMode();
 			auto state    = GitHubManager::GetState();
 
-			if (ImGui::Button(ICON_MS_FILTER_LIST))
-				ImGui::OpenPopup("##filterScripts");
+			if (ImGui::Button(ICON_MS_SORT))
+				ImGui::OpenPopup("##sortScripts");
 
-			ImVec2 filterPopupPos = ImGui::GetItemRectMax();
-			if (ImGui::IsPopupOpen("##filterScripts"))
-				ImGui::SetNextWindowPos(ImVec2(filterPopupPos.x, filterPopupPos.y), ImGuiCond_Always);
+			ImVec2 sortPopupPos = ImGui::GetItemRectMax();
+			if (ImGui::IsPopupOpen("##sortScripts"))
+				ImGui::SetNextWindowPos(ImVec2(sortPopupPos.x, sortPopupPos.y), ImGuiCond_Always);
 
 			ImGui::SameLine();
-			ImGui::Text("Filter");
+			ImGui::Text("Sort");
 
-			if (ImGui::BeginPopup("##filterScripts"))
+			if (ImGui::BeginPopup("##sortScripts"))
 			{
 				m_SortPopupOpen = true;
 				for (const auto& opt : SortOptions)

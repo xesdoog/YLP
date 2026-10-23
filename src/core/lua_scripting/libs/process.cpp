@@ -67,7 +67,7 @@ namespace YLP::LuaJIT
 			    "GetModuleBase", &ProcessScanner::GetBaseAddress,
 			    "Update", &ProcessScanner::FindProcess);
 
-			processUsertype["FindPattern"] = [&](
+			processUsertype["FindPattern"] = [](
 				ProcessScanner& self,
 				const std::string& pattern,
 				sol::optional<std::string> name,

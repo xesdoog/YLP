@@ -19,7 +19,6 @@
 
 #include "lua_mgr.hpp"
 #include "lua_module.hpp"
-#include "lib_loader.hpp"
 
 
 namespace YLP::LuaJIT

@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiCol
+---@class ImGuiCol : integer
 ---@field Text integer 
 ---@field TextDisabled integer 
 ---@field WindowBg integer Background of normal windows

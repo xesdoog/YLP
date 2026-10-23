@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiStyleVar
+---@class ImGuiStyleVar : integer
 ---@field Alpha integer float     Alpha
 ---@field DisabledAlpha integer float     DisabledAlpha
 ---@field WindowPadding integer ImVec2    WindowPadding

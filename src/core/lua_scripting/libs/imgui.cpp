@@ -229,12 +229,11 @@ namespace YLP::LuaJIT
 
 			/*@ylp.function ImGui.InvisibleButton
 			* param label<string> 
-			* param sizeX<number> Button width
-			* param sizeY<number> Button height
+			* param size<ImVec2>
 			* return boolean clicked
 			@*/
-			imguiTable["InvisibleButton"] = [](const std::string& label, float sizeX, float sizeY) {
-				return ImGui::InvisibleButton(label.c_str(), ImVec2(sizeX, sizeY));
+			imguiTable["InvisibleButton"] = [](const std::string& label, const ImVec2& size) {
+				return ImGui::InvisibleButton(label.c_str(), size);
 			};
 
 			/*@ylp.function ImGui.Checkbox
@@ -905,6 +904,44 @@ namespace YLP::LuaJIT
 			@*/
 			imguiTable["SetMouseCursor"] = [](int cursorIdx) {
 				ImGui::SetMouseCursor(static_cast<ImGuiMouseCursor>(cursorIdx));
+			};
+
+			// misc
+
+			/*@ylp.function ImGui.SetTooltip
+			* param text<string>
+			* param ...<any> Optional format args
+			@*/
+			imguiTable["SetTooltip"] = [&](const std::string& text, sol::variadic_args args) {
+				ImGui::SetTooltip(LuaStringFormat(L, text, args).c_str());
+			};
+
+			/*@ylp.function ImGui.BeginTooltip
+			*
+			@*/
+			imguiTable["BeginTooltip"] = []() {
+				ImGui::BeginTooltip();
+			};
+
+			/*@ylp.function ImGui.EndTooltip
+			*
+			@*/
+			imguiTable["EndTooltip"] = []() {
+				ImGui::EndTooltip();
+			};
+
+			/*@ylp.function ImGui.BeginGroup
+			*
+			@*/
+			imguiTable["BeginGroup"] = []() {
+				ImGui::BeginGroup();
+			};
+
+			/*@ylp.function ImGui.EndGroup
+			*
+			@*/
+			imguiTable["EndGroup"] = []() {
+				ImGui::EndGroup();
 			};
 
 			// custom widgets

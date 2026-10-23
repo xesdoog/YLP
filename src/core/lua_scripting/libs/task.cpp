@@ -59,7 +59,7 @@ namespace YLP::LuaJIT
 			* param ms<integer?> Optional yield time in milliseconds
 			@*/
 
-			auto taskTable = L["Task"].get_or_create<sol::table>();
+			auto taskTable   = L["Task"].get_or_create<sol::table>();
 			taskTable["Run"] = [](sol::protected_function func, sol::this_state state) {
 				register_task(func, 0, state);
 			};

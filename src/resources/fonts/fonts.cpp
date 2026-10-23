@@ -36,20 +36,20 @@
 #endif
 
 
-ImFont* Fonts::Small	= nullptr;
+ImFont* Fonts::Small    = nullptr;
 ImFont* Fonts::Regular  = nullptr;
-ImFont* Fonts::Bold		= nullptr;
-ImFont* Fonts::Title	= nullptr;
-ImFont* Fonts::Subtitle	= nullptr;
+ImFont* Fonts::Bold     = nullptr;
+ImFont* Fonts::Title    = nullptr;
+ImFont* Fonts::Subtitle = nullptr;
 ImFont* Fonts::IconsBig = nullptr;
 
 static void MergeIcons(ImGuiIO& io, float size)
 {
 	ImFontConfig icon_cfg;
-	icon_cfg.MergeMode		  = true;
-	icon_cfg.PixelSnapH		  = true;
+	icon_cfg.MergeMode        = true;
+	icon_cfg.PixelSnapH       = true;
 	icon_cfg.GlyphMinAdvanceX = 16.0f;
-	icon_cfg.GlyphOffset	  = ImVec2(1, 3);
+	icon_cfg.GlyphOffset      = ImVec2(1, 3);
 
 	strcpy(icon_cfg.Name, "MaterialDesignSymbols");
 	static const ImWchar icons_range[] = {ICON_MIN_MS, ICON_MAX_MS, 0};

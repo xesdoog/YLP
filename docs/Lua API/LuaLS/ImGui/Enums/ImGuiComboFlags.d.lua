@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiComboFlags
+---@class ImGuiComboFlags : integer
 ---@field None integer 
 ---@field PopupAlignLeft integer Align the popup toward the left by default
 ---@field HeightSmall integer Max ~4 items visible. Tip: If you want your combo popup to be a specific size you can use SetNextWindowSizeConstraints() prior to calling BeginCombo()

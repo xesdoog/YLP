@@ -1,6 +1,6 @@
 ---@meta
 
----@class ImGuiWindowFlags
+---@class ImGuiWindowFlags : integer
 ---@field None integer 
 ---@field NoTitleBar integer Disable title-bar
 ---@field NoResize integer Disable user resizing with the lower-right grip

@@ -79,17 +79,18 @@ namespace YLP::Frontend
 				{
 					for (int i = 0; i < processes.size(); ++i)
 					{
-						auto& p = processes[i];
+						auto& p    = processes[i];
+						auto& name = p.m_Name;
 
-						if (p.m_Pid == 0 || p.m_Name.empty())
+						if (p.m_Pid == 0 || name.empty() || name == "YLP.exe")
 							continue;
 
-						auto nameLower = Utils::StringToLower(p.m_Name);
+						auto nameLower = Utils::StringToLower(name);
 						if (searchBuffer[0] != '\0' && nameLower.find(searchBuffer) == std::string::npos)
 							continue;
 
 						ImGui::PushID(p.m_Pid);
-						ImGui::Selectable(p.m_Name.c_str(), p.m_Pid == selectedProcess.m_Pid);
+						ImGui::Selectable(name.c_str(), p.m_Pid == selectedProcess.m_Pid);
 						if (ImGui::IsItemClicked())
 						{
 							selectedProcess = p;

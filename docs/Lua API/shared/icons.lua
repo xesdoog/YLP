@@ -43,11 +43,13 @@ return {
 	ICON_MS_FILTER_LIST                              = "\xEE\x85\x92", -- U+E152
 	ICON_MS_FOLDER                                   = "\xEE\x8B\x87", -- U+E2C7
 	ICON_MS_HELP                                     = "\xEE\xA3\xBD", -- U+E8FD
+	ICON_MS_HISTORY                                  = "\xEE\xA2\xB3", -- U+E8B3
 	ICON_MS_HOME_APP_LOGO                            = "\xEE\x8A\x95", -- U+E295
 	ICON_MS_HOURGLASS_BOTTOM                         = "\xEE\xA9\x9C", -- U+EA5C
 	ICON_MS_HOURGLASS_EMPTY                          = "\xEE\xA2\x8B", -- U+E88B
 	ICON_MS_HOURGLASS_TOP                            = "\xEE\xA9\x9B", -- U+EA5B
 	ICON_MS_INFO                                     = "\xEE\xA2\x8E", -- U+E88E
+	ICON_MS_INSTALL_DESKTOP                          = "\xEE\xAD\xB1", -- U+EB71
 	ICON_MS_LIST                                     = "\xEE\xA2\x96", -- U+E896
 	ICON_MS_MEMORY                                   = "\xEE\x8C\xA2", -- U+E322
 	ICON_MS_MESSAGE                                  = "\xEE\x83\x89", -- U+E0C9
@@ -69,6 +71,8 @@ return {
 	ICON_MS_SDK                                      = "\xEE\x9C\xA0", -- U+E720
 	ICON_MS_SEARCH                                   = "\xEE\xBD\xBA", -- U+EF7A
 	ICON_MS_SETTINGS                                 = "\xEE\xA2\xB8", -- U+E8B8
+	ICON_MS_SORT                                     = "\xEE\x85\xA4", -- U+E164
+	ICON_MS_SORT_BY_ALPHA                            = "\xEE\x81\x93", -- U+E053
 	ICON_MS_STAR                                     = "\xEF\x82\x9A", -- U+F09A
 	ICON_MS_SYNC                                     = "\xEE\x98\xA7", -- U+E627
 	ICON_MS_SYRINGE                                  = "\xEE\x84\xB3", -- U+E133
