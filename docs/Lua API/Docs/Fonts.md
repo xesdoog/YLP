@@ -2,6 +2,8 @@
 
 # Fonts
 
+A readonly table that stores pointers to YLP's fonts. Used in combination with `ImGui.PushFont`
+
 ## Fields
 
 | Name | Type | Description |

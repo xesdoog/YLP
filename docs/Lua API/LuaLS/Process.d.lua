@@ -1,5 +1,6 @@
 ---@meta
 
+-- A process abstraction providing basic process interactions.
 ---@class Process
 ---@overload fun(processName: string): Process
 Process = {}

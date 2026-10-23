@@ -2,6 +2,8 @@
 
 # Filesystem
 
+Provides file system functions. Paths are limited to the `/Plugins` folder only.
+
 ## Methods
 
 ## `MyRoot`

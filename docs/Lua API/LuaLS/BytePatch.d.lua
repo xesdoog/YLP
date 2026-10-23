@@ -1,5 +1,8 @@
 ---@meta
 
+-- Provides an abstraction around byte patching.
+-- 
+-- It is exclusively returned by [Pointer](lua://Pointer) and can not be explicitly constructed.
 ---@class BytePatch
 BytePatch = {}
 

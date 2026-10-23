@@ -2,6 +2,8 @@
 
 # HTTP
 
+Provides basic HTTP GET requests.
+
 ## Methods
 
 ## `Get`

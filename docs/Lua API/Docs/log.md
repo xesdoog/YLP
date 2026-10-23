@@ -2,6 +2,8 @@
 
 # log
 
+Provides functions to output text to console and log file.
+
 ## Methods
 
 ## `info`

@@ -1,5 +1,6 @@
 ---@meta
 
+-- ### YLP namespace
 ---@class YLP
 YLP = {}
 

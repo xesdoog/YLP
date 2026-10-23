@@ -1,5 +1,6 @@
 ---@meta
 
+-- Provides functions to output text to console and log file.
 ---@class log
 log = {}
 

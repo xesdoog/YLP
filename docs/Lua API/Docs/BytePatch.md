@@ -2,6 +2,10 @@
 
 # BytePatch
 
+Provides an abstraction around byte patching.
+
+It is exclusively returned by [Pointer](./Pointer.md) and can not be explicitly constructed.
+
 ## Methods
 
 ## `Apply`
