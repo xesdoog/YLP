@@ -2,10 +2,6 @@
 
 # Pointer
 
-Provides basic memory read/write functions.
-
-It is exclusively returned by [Process](./Process.md) and can not be explicitly constructed.
-
 ## Operators
 
 ### `add`

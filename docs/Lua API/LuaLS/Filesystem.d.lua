@@ -1,6 +1,5 @@
 ---@meta
 
--- Provides file system functions. Paths are limited to the `/Plugins` folder only.
 ---@class Filesystem
 Filesystem = {}
 

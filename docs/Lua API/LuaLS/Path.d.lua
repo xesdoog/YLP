@@ -1,6 +1,5 @@
 ---@meta
 
--- A path object limited to the `/Plugins` folder
 ---@class Path
 ---@overload fun(path: string): Path
 ---@operator div(string): Path

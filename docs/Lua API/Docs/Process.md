@@ -2,8 +2,6 @@
 
 # Process
 
-A process abstraction providing basic process interactions.
-
 ## Constructors
 
 ```lua

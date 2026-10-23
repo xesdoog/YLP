@@ -1,8 +1,5 @@
 ---@meta
 
--- Provides basic memory read/write functions.
--- 
--- It is exclusively returned by [Process](lua://Process) and can not be explicitly constructed.
 ---@class Pointer
 ---@operator add(integer): Pointer
 ---@operator sub(integer): Pointer

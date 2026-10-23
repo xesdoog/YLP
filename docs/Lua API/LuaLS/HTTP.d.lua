@@ -1,6 +1,5 @@
 ---@meta
 
--- Provides basic HTTP GET requests.
 ---@class HTTP
 HTTP = {}
 

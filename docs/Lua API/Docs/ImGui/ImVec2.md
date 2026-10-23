@@ -2,8 +2,6 @@
 
 # ImVec2
 
-A 2D Vector user type to be used in ImGui functions.
-
 ## Constructors
 
 ```lua

@@ -1,6 +1,5 @@
 ---@meta
 
--- A 2D Vector user type to be used in ImGui functions.
 ---@class ImVec2
 ---@overload fun(x: number, y: number): ImVec2
 ---@operator add(ImVec2): ImVec2

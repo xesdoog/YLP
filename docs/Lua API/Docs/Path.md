@@ -2,8 +2,6 @@
 
 # Path
 
-A path object limited to the `/Plugins` folder
-
 ## Constructors
 
 ```lua
