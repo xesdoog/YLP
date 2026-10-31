@@ -365,11 +365,59 @@ function ImGui.GetWindowSize() end
 ---@return ImVec2 windowPos Current window position.
 function ImGui.GetWindowPos() end
 
+---@return number width Current window width
+function ImGui.GetWindowWidth() end
+
+---@return number height Current window height
+function ImGui.GetWindowHeight() end
+
+---@return ImDrawList 
+function ImGui.GetWindowDrawList() end
+
+---@return ImDrawList 
+function ImGui.GetBackgroundDrawList() end
+
+---@return ImDrawList 
+function ImGui.GetForegroundDrawList() end
+
 ---@return number frameHeight
 function ImGui.GetFrameHeight() end
 
 ---@return number frameHeight Frame height with spacing.
 function ImGui.GetFrameHeightWithSpacing() end
+
+---@return number frameTime
+function ImGui.GetTime() end
+
+---@param size ImVec2 Window size
+---@param cond integer? Optional [ImGuiCond](lua://ImGuiCond)
+function ImGui.SetWindowSize(size, cond) end
+
+---@param name string Window name
+---@param size ImVec2 Window size
+---@param cond integer? Optional [ImGuiCond](lua://ImGuiCond)
+function ImGui.SetWindowSize(name, size, cond) end
+
+---@param pos ImVec2 New position
+---@param cond integer? Optional [ImGuiCond](lua://ImGuiCond)
+function ImGui.SetWindowPos(pos, cond) end
+
+---@param name string Window name
+---@param pos ImVec2 New position
+---@param cond integer? Optional [ImGuiCond](lua://ImGuiCond)
+function ImGui.SetWindowPos(name, pos, cond) end
+
+---@param pos ImVec2 
+---@param cond integer? Optional [ImGuiCond](lua://ImGuiCond)
+function ImGui.SetNextWindowSize(pos, cond) end
+
+---@param size ImVec2 
+---@param cond integer? Optional [ImGuiCond](lua://ImGuiCond)
+function ImGui.SetNextWindowSize(size, cond) end
+
+---@param minSize ImVec2 
+---@param maxSize ImVec2 
+function ImGui.SetNextWindowSizeConstraints(minSize, maxSize) end
 
 ---@param width number Width of the next item.
 function ImGui.SetNextItemWidth(width) end
@@ -378,6 +426,14 @@ function ImGui.SetNextItemWidth(width) end
 function ImGui.PushItemWidth(width) end
 
 function ImGui.PopItemWidth() end
+
+function ImGui.SetNextWindowSize() end
+
+---@return boolean 
+function ImGui.IsWindowAppearing() end
+
+---@return boolean 
+function ImGui.IsWindowCollapsed() end
 
 ---@param styleVar integer [ImGuiStyleVar](lua://ImGuiStyleVar) index
 ---@param v number style value

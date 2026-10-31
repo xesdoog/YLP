@@ -1149,6 +1149,66 @@ function ImGui.GetWindowPos() end
 | --- | --- |
 | `ImVec2` | windowPos Current window position. |
 
+## `GetWindowWidth`
+
+```lua
+function ImGui.GetWindowWidth() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `number` | width Current window width |
+
+## `GetWindowHeight`
+
+```lua
+function ImGui.GetWindowHeight() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `number` | height Current window height |
+
+## `GetWindowDrawList`
+
+```lua
+function ImGui.GetWindowDrawList() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `ImDrawList` |  |
+
+## `GetBackgroundDrawList`
+
+```lua
+function ImGui.GetBackgroundDrawList() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `ImDrawList` |  |
+
+## `GetForegroundDrawList`
+
+```lua
+function ImGui.GetForegroundDrawList() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `ImDrawList` |  |
+
 ## `GetFrameHeight`
 
 ```lua
@@ -1172,6 +1232,111 @@ function ImGui.GetFrameHeightWithSpacing() end
 | Type | Description |
 | --- | --- |
 | `number` | frameHeight Frame height with spacing. |
+
+## `GetTime`
+
+```lua
+function ImGui.GetTime() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `number` | frameTime |
+
+## `SetWindowSize`
+
+```lua
+function ImGui.SetWindowSize(size, cond) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `size` | `ImVec2` | Window size |
+| `cond` | `integer?` | Optional [ImGuiCond](./ImGuiCond.md) |
+
+## `SetWindowSize`
+
+```lua
+function ImGui.SetWindowSize(name, size, cond) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | Window name |
+| `size` | `ImVec2` | Window size |
+| `cond` | `integer?` | Optional [ImGuiCond](./ImGuiCond.md) |
+
+## `SetWindowPos`
+
+```lua
+function ImGui.SetWindowPos(pos, cond) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `pos` | `ImVec2` | New position |
+| `cond` | `integer?` | Optional [ImGuiCond](./ImGuiCond.md) |
+
+## `SetWindowPos`
+
+```lua
+function ImGui.SetWindowPos(name, pos, cond) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | Window name |
+| `pos` | `ImVec2` | New position |
+| `cond` | `integer?` | Optional [ImGuiCond](./ImGuiCond.md) |
+
+## `SetNextWindowSize`
+
+```lua
+function ImGui.SetNextWindowSize(pos, cond) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `pos` | `ImVec2` |  |
+| `cond` | `integer?` | Optional [ImGuiCond](./ImGuiCond.md) |
+
+## `SetNextWindowSize`
+
+```lua
+function ImGui.SetNextWindowSize(size, cond) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `size` | `ImVec2` |  |
+| `cond` | `integer?` | Optional [ImGuiCond](./ImGuiCond.md) |
+
+## `SetNextWindowSizeConstraints`
+
+```lua
+function ImGui.SetNextWindowSizeConstraints(minSize, maxSize) end
+```
+
+### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `minSize` | `ImVec2` |  |
+| `maxSize` | `ImVec2` |  |
 
 ## `SetNextItemWidth`
 
@@ -1202,6 +1367,36 @@ function ImGui.PushItemWidth(width) end
 ```lua
 function ImGui.PopItemWidth() end
 ```
+
+## `SetNextWindowSize`
+
+```lua
+function ImGui.SetNextWindowSize() end
+```
+
+## `IsWindowAppearing`
+
+```lua
+function ImGui.IsWindowAppearing() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `boolean` |  |
+
+## `IsWindowCollapsed`
+
+```lua
+function ImGui.IsWindowCollapsed() end
+```
+
+### Returns
+
+| Type | Description |
+| --- | --- |
+| `boolean` |  |
 
 ## `PushStyleVar`
 
