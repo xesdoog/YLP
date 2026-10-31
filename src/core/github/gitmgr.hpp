@@ -94,12 +94,26 @@ namespace YLP
 			return Config().luaRepoSortMode;
 		}
 
-		static void SetSortMode(const eLuaRepoSortMode mode)
+		static const uint8_t GetSortOrder() noexcept
+		{
+			return Config().luaRepoSortOrder;
+		}
+
+		static void SetSortMode(const eLuaRepoSortMode& mode)
 		{
 			if (Config().luaRepoSortMode == mode)
 				return;
 
 			Config().luaRepoSortMode = mode;
+			SortRepositories();
+		}
+
+		static void SetSortOrder(const eLuaRepoSortOrder& order)
+		{
+			if (Config().luaRepoSortOrder == order)
+				return;
+
+			Config().luaRepoSortOrder = order;
 			SortRepositories();
 		}
 

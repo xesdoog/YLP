@@ -385,87 +385,88 @@ namespace YLP::IO
 		return final;
 	};
 
-	DllInfo ValidateDLL(const fs::path& file)
+	void ValidateDLL(DllInfo& inf)
 	{
-		if (!Exists(file))
-			return {.error = "File not found"};
+		const fs::path& filepath = inf.m_Path;
+		if (!Exists(filepath))
+		{
+			inf.m_Ok    = false;
+			inf.m_Error = "File not found!";
+			return;
+		}
 
-		HANDLE hFile = CreateFileW(file.wstring().c_str(),
+		ScopedHandle hFile(CreateFileW(filepath.wstring().c_str(),
 		    GENERIC_READ,
 		    FILE_SHARE_READ,
 		    nullptr,
 		    OPEN_EXISTING,
 		    FILE_ATTRIBUTE_NORMAL,
-		    nullptr);
+		    nullptr));
 
-		if (hFile == INVALID_HANDLE_VALUE)
+		if (!hFile)
 		{
-			CloseHandle(hFile);
-			return {.error = "CreateFile failed"};
+			inf.m_Ok    = false;
+			inf.m_Error = "Failed to create file from DLL path!";
+			return;
 		}
 
-		HANDLE hMap = CreateFileMappingW(hFile, nullptr, PAGE_READONLY, 0, 0, nullptr);
+		ScopedHandle hMap(CreateFileMappingW(hFile.Get(), nullptr, PAGE_READONLY, 0, 0, nullptr));
 		if (!hMap)
 		{
-			CloseHandle(hFile);
-			return {.error = "CreateFileMapping failed"};
+			inf.m_Ok    = false;
+			inf.m_Error = "Failed to create file mapping from DLL path!";
+			return;
 		}
 
-		LPVOID base = MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
+		ScopedView base(MapViewOfFile(hMap.Get(), FILE_MAP_READ, 0, 0, 0), &UnmapViewOfFile);
 		if (!base)
 		{
-			CloseHandle(hMap);
-			CloseHandle(hFile);
-			return {.error = "MapViewOfFile failed"};
+			inf.m_Ok    = false;
+			inf.m_Error = "Failed to map view of file from DLL path!";
+			return;
 		}
 
-		auto dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+		auto dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base.get());
 		if (dos->e_magic != IMAGE_DOS_SIGNATURE)
 		{
-			UnmapViewOfFile(base);
-			CloseHandle(hMap);
-			CloseHandle(hFile);
-			return {.error = "Invalid DOS signature"};
+			inf.m_Ok    = false;
+			inf.m_Error = "Invalid DOS signature!";
+			return;
 		}
 
-		auto nt = reinterpret_cast<IMAGE_NT_HEADERS*>((BYTE*)base + dos->e_lfanew);
+		auto nt = reinterpret_cast<IMAGE_NT_HEADERS*>(reinterpret_cast<BYTE*>(base.get()) + dos->e_lfanew);
 		if (nt->Signature != IMAGE_NT_SIGNATURE)
 		{
-			UnmapViewOfFile(base);
-			CloseHandle(hMap);
-			CloseHandle(hFile);
-			return {.error = "Invalid NT signature"};
+			inf.m_Ok    = false;
+			inf.m_Error = "Invalid NT signature!";
+			return;
 		}
 
-		DllInfo info{};
 		auto entryExport = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
-		info.hasExports  = entryExport.Size > 0 && entryExport.VirtualAddress != 0;
-		info.is64bit     = (nt->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64);
-		info.ok          = true;
-
-		UnmapViewOfFile(base);
-		CloseHandle(hMap);
-		CloseHandle(hFile);
-		return info;
+		inf.m_HasExports = entryExport.Size > 0 && entryExport.VirtualAddress != 0;
+		inf.m_Is64bit    = (nt->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64);
+		inf.m_Ok         = true;
 	}
 
 	DllInfo AddDLL()
 	{
 		auto dllPath = OpenFileDialog({{L"Dynamic Link Library", L"*.dll"}}, L"Select a DLL");
 		if (dllPath.empty())
-			return {.error = "Canceled by user"};
+			return {.m_Error = "Canceled by user"};
 
-		DllInfo info  = ValidateDLL(dllPath);
-		info.checksum = Utils::CalcSha256(dllPath);
-		info.filepath = dllPath;
-		info.name     = dllPath.filename().string();
+		DllInfo info{};
+		info.m_Checksum = Utils::CalcSha256(dllPath);
+		info.m_Path     = dllPath;
+		info.m_Name     = dllPath.filename().string();
+
+		ValidateDLL(info);
 		return info;
 	}
 
 	std::wstring ReadRegistryKey(HKEY rootPath, const wchar_t* subkeyPath, const wchar_t* subkeyValue)
 	{
-		HKEY hKey;
-		LONG result = RegOpenKeyExW(rootPath, subkeyPath, 0, KEY_READ, &hKey);
+		HKEY hKey{};
+		auto result = RegOpenKeyExW(rootPath, subkeyPath, 0, KEY_READ, &hKey);
 		if (result != ERROR_SUCCESS)
 		{
 			LOG_ERROR("Failed to read registry subkey '{}'", Utils::WideToUTF8(subkeyValue).data());
@@ -473,11 +474,9 @@ namespace YLP::IO
 			return {};
 		}
 
-		// std::vector<wchar_t> buffer(dataSize / sizeof(wchar_t));
 		wchar_t buffer[512]{};
 		DWORD dataSize = sizeof(buffer);
-		std::wstring value;
-		result = RegQueryValueExW(hKey, subkeyValue, NULL, NULL, reinterpret_cast<LPBYTE>(buffer), &dataSize);
+		result         = RegQueryValueExW(hKey, subkeyValue, NULL, NULL, reinterpret_cast<LPBYTE>(buffer), &dataSize);
 		RegCloseKey(hKey);
 
 		if (result == ERROR_SUCCESS)

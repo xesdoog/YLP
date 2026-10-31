@@ -52,9 +52,9 @@ namespace YLP
 
 	extern HINSTANCE g_Instance;
 	extern HWND g_Hwnd;
-	extern std::filesystem::path g_ProjectPath;
-	extern std::filesystem::path g_YimPath;
-	extern std::filesystem::path g_YimV2Path;
+	extern fs::path g_ProjectPath;
+	extern fs::path g_YimPath;
+	extern fs::path g_YimV2Path;
 	extern std::atomic<bool> g_Running;
 
 	class GlobalMutex

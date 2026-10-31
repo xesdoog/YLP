@@ -22,22 +22,25 @@
 #include <shobjidl.h>
 
 
-namespace fs = std::filesystem;
-
 namespace YLP::IO
 {
 	struct DllInfo
 	{
-		bool ok         = false;
-		bool is64bit    = false;
-		bool hasExports = false;
+		bool m_Ok         = false;
+		bool m_Is64bit    = false;
+		bool m_HasExports = false;
 
-		fs::path filepath{};
+		fs::path m_Path{};
 
-		std::string error{};
-		std::string checksum{};
-		std::string name{};
-		std::string lastKnownProcess{};
+		std::string m_Error{};
+		std::string m_Checksum{};
+		std::string m_Name{};
+		std::string m_LastKnownProcess{};
+
+		bool operator==(const DllInfo& other) const noexcept
+		{
+			return m_Checksum == other.m_Checksum && m_Name == other.m_Name;
+		}
 	};
 
 	void HandleFsErr(const std::error_code& ec);
@@ -60,7 +63,7 @@ namespace YLP::IO
 	bool Rename(const fs::path& src, const fs::path& dest);
 
 	DllInfo AddDLL();
-	DllInfo ValidateDLL(const std::filesystem::path& file);
+	void ValidateDLL(DllInfo& inf);
 
 	std::wstring ReadRegistryKey(HKEY rootPath, const wchar_t* subkeyPath, const wchar_t* subkeyValue);
 

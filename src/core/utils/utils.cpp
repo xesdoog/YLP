@@ -189,26 +189,27 @@ namespace YLP::Utils
 
 	std::string Int32ToTime(int32_t seconds)
 	{
-		if (seconds < 0)
+		if (seconds <= 0)
 			return "0s.";
 
-		int hours = seconds / 3600;
+		int hours   = seconds / 3600;
 		int minutes = (seconds % 3600) / 60;
-		int secs = seconds % 60;
+		int secs    = seconds % 60;
 
 		return std::format("{:02}:{:02}:{:02}", hours, minutes, secs);
 	}
 
 	std::string FormatTime()
 	{
-		using namespace std::chrono;
-		auto now = system_clock::now();
-		std::time_t time = system_clock::to_time_t(now);
-		std::tm tm;
+		auto now  = std::chrono::system_clock::now();
+		auto time = std::chrono::system_clock::to_time_t(now);
+
+		std::tm tm{};
 		localtime_s(&tm, &time);
 
 		std::ostringstream oss;
 		oss << std::put_time(&tm, "%H:%M:%S");
+
 		return oss.str();
 	}
 
@@ -236,13 +237,13 @@ namespace YLP::Utils
 		if (ss.fail())
 			return iso;
 
-		auto t_c = std::mktime(&tm);
-		auto now = std::time(nullptr);
+		auto t_c  = std::mktime(&tm);
+		auto now  = std::time(nullptr);
 		auto diff = std::difftime(now, t_c);
 
 		const int minutes = diff / 60;
-		const int hours = minutes / 60;
-		const int days = hours / 24;
+		const int hours   = minutes / 60;
+		const int days    = hours / 24;
 
 		if (days > 365)
 			return std::to_string(days / 365) + " year(s) ago";
@@ -283,46 +284,6 @@ namespace YLP::Utils
 		   << std::setw(8) << parts[3];
 
 		return ss.str();
-	}
-
-	IconData HICONToRGBA(HICON hIcon)
-	{
-		IconData result{};
-
-		if (!hIcon)
-			return result;
-
-		ICONINFO iconInfo{};
-		if (!GetIconInfo(hIcon, &iconInfo))
-			return result;
-
-		BITMAP bmpColor{};
-		GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmpColor);
-
-		result.width = bmpColor.bmWidth;
-		result.height = bmpColor.bmHeight;
-		HDC hDC = GetDC(nullptr);
-		HDC hMemDC = CreateCompatibleDC(hDC);
-		BITMAPINFO bmi{};
-		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-		bmi.bmiHeader.biWidth = bmpColor.bmWidth;
-		bmi.bmiHeader.biHeight = -bmpColor.bmHeight;
-		bmi.bmiHeader.biPlanes = 1;
-		bmi.bmiHeader.biBitCount = 32;
-		bmi.bmiHeader.biCompression = BI_RGB;
-		size_t newSize = size_t(result.width * result.height * 4);
-		result.pixels.resize(newSize);
-		SelectObject(hMemDC, iconInfo.hbmColor);
-		GetDIBits(hMemDC, iconInfo.hbmColor, 0, bmpColor.bmHeight, result.pixels.data(), &bmi, DIB_RGB_COLORS);
-		DeleteDC(hMemDC);
-		ReleaseDC(nullptr, hDC);
-
-		if (iconInfo.hbmColor)
-			DeleteObject(iconInfo.hbmColor);
-		if (iconInfo.hbmMask)
-			DeleteObject(iconInfo.hbmMask);
-
-		return result;
 	}
 
 	const std::string RegexMatchHtml(const std::wstring& host, const std::wstring& path, const std::string& ptrn, const int& index)

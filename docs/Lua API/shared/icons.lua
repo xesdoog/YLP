@@ -18,8 +18,10 @@ along with YLP.  If not, see <https://www.gnu.org/licenses/>.
 
 
 return {
+	ICON_MS_ARROW_DOWNWARD                           = "\xEE\x97\x9B", -- U+E5DB
 	ICON_MS_ARROW_MENU_CLOSE                         = "\xEF\x8F\x93", -- U+F3D3
 	ICON_MS_ARROW_MENU_OPEN                          = "\xEF\x8F\x92", -- U+F3D2
+	ICON_MS_ARROW_UPWARD                             = "\xEE\x97\x98", -- U+E5D8
 	ICON_MS_BACKGROUND_REPLACE                       = "\xEF\x88\x8A", -- U+F20A
 	ICON_MS_BACKSPACE                                = "\xEE\x85\x8A", -- U+E14A
 	ICON_MS_BLOCK                                    = "\xEF\x82\x8C", -- U+F08C

@@ -14,7 +14,7 @@ namespace YLP::Memory
 	{
 		g_ProcLegacy = std::make_shared<ProcessMonitor>(
 		    "GTA5.exe",
-		    MonitorLegacy,
+		    AT_LEGACY,
 		    1s,
 		    [this](ProcessScanner& scanner) {
 			    {
@@ -40,7 +40,7 @@ namespace YLP::Memory
 
 		g_ProcEnhanced = std::make_shared<ProcessMonitor>(
 		    "GTA5_Enhanced.exe",
-		    MonitorEnhanced,
+		    AT_ENHANCED,
 		    1s,
 		    [this](ProcessScanner& scanner) {
 			    {

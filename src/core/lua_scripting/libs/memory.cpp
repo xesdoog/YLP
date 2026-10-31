@@ -37,7 +37,7 @@ namespace YLP::LuaJIT
 		{
 			// clang-format off
 
-			/* @ylp.class BytePatch
+			/*@ylp.class BytePatch
 			* description
 				Provides an abstraction around byte patching.
 

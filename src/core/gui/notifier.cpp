@@ -188,14 +188,16 @@ namespace YLP
 		drawList->AddRectFilled(winTL, winBR, popupBg, popupRounding);
 		drawList->AddRect(winTL, winBR, popupBorder, popupRounding, 0, 1.0f);
 
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 12.0f);
-		ImGui::TitleText("Notifications");
+		ImGui::PushFont(Fonts::Bold);
+		ImGui::Text("Notifications");
+		ImGui::PopFont();
 
 		bool muted = IsMuted();
 		bool empty = m_Notifications.empty();
 
+		float iconStart = (ImGui::CalcTextSize(ICON_MS_VOLUME_MUTE).x * 3) + (ImGui::GetStyle().ItemSpacing.x * 4);
 		ImGui::SameLine();
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 120.0f);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - iconStart);
 		if (ImGui::SelectableLabel(muted ? ICON_MS_VOLUME_MUTE : ICON_MS_VOLUME_UP, false))
 			ToggleMute();
 		ImGui::ToolTip(muted ? "Unmute" : "Mute");

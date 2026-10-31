@@ -34,6 +34,10 @@ namespace YLP::Frontend
 		}
 
 	private:
+
+		static inline ImGuiChildFlags cardChildFlags = ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY;
+		static inline ImGuiWindowFlags cardWinFlags  = ImGuiWindowFlags_AlwaysUseWindowPadding | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
+
 		struct SortOption
 		{
 			const char* label;
@@ -43,35 +47,26 @@ namespace YLP::Frontend
 		static constexpr inline const SortOption SortOptions[] = {
 		    {ICON_MS_HISTORY " Recently Updated", eLuaRepoSortMode::COMMIT},
 		    {ICON_MS_STAR " Stars", eLuaRepoSortMode::STARS},
-		    {ICON_MS_SORT_BY_ALPHA " Name (Descending)", eLuaRepoSortMode::NAME},
+		    {ICON_MS_SORT_BY_ALPHA " Name", eLuaRepoSortMode::NAME},
 		    {ICON_MS_INSTALL_DESKTOP " Installed", eLuaRepoSortMode::INSTALLED},
 		};
-
-		static inline const char* GetSortModeName(const eLuaRepoSortMode& mode)
-		{
-			for (const auto& option : SortOptions)
-			{
-				if (option.mode == mode)
-					return option.label;
-
-				return "Unknown";
-			}
-		}
 
 		static inline void DrawInstalledRepo(const Repository* repo)
 		{
 			if (ImGui::ColoredButton(ICON_MS_DELETE, ImVec4(0.95f, 0.20f, 0.20f, 0.69f), 3.0f))
-				GitHubManager::RemoveRepository(repo->name);
+				GitHubManager::RemoveRepository(repo->m_Name);
 			ImGui::ToolTip("Delete");
 
 			ImGui::SameLine();
-			if (repo->isDisabled)
+			if (repo->m_IsDisabled)
 			{
 				if (ImGui::ColoredButton(ICON_MS_CHECK_CIRCLE, ImVec4(0.20f, 0.95f, 0.20f, 0.69f), 2.0f))
 				{
-					auto src = g_YimPath / "scripts" / "disabled" / repo->name;
-					auto dest = g_YimPath / "scripts" / repo->name;
-					GitHubManager::MoveRepository(repo->name, src, dest);
+					const std::string& name = repo->m_Name;
+
+					auto src  = g_YimPath / "scripts" / "disabled" / name;
+					auto dest = g_YimPath / "scripts" / name;
+					GitHubManager::MoveRepository(name, src, dest);
 				}
 				ImGui::ToolTip("Enable");
 			}
@@ -79,24 +74,27 @@ namespace YLP::Frontend
 			{
 				if (ImGui::Button(ICON_MS_BLOCK))
 				{
-					auto src = g_YimPath / "scripts" / repo->name;
-					auto dest = g_YimPath / "scripts" / "disabled" / repo->name;
-					GitHubManager::MoveRepository(repo->name, src, dest);
+					const std::string& name = repo->m_Name;
+
+					auto src  = g_YimPath / "scripts" / name;
+					auto dest = g_YimPath / "scripts" / "disabled" / name;
+					GitHubManager::MoveRepository(name, src, dest);
 				}
 				ImGui::ToolTip("Disable");
 
-				if (repo->isPendingUpdate)
+				if (repo->m_IsPendingUpdate)
 				{
 					ImGui::SameLine();
 					if (ImGui::Button(ICON_MS_UPDATE))
-						GitHubManager::DownloadRepository(repo->name);
+						GitHubManager::DownloadRepository(repo->m_Name);
 					ImGui::ToolTip("Update");
+
+					auto icon         = ICON_MS_CLOUD_DOWNLOAD;
+					float iconWidth   = ImGui::CalcTextSize(icon).x;
+					float regionWidth = ImGui::GetContentRegionAvail().x;
 
 					ImGui::SameLine();
 					ImGui::PushFont(Fonts::Title);
-					auto icon = ICON_MS_CLOUD_DOWNLOAD;
-					float iconWidth = ImGui::CalcTextSize(icon).x;
-					float regionWidth = ImGui::GetContentRegionAvail().x;
 					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + regionWidth - iconWidth);
 					ImGui::TextColored(ImVec4(0.15, 0.35, 0.6, 1.0), icon);
 					ImGui::PopFont();
@@ -106,46 +104,45 @@ namespace YLP::Frontend
 
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_MS_FOLDER))
-				IO::Open(repo->currentPath.string());
+				IO::Open(repo->m_CurrentPath.string());
 			ImGui::ToolTip("Open folder");
 		}
 
 		inline void DrawRepoCard(const Repository* repo) const
 		{
-			ImGui::BeginChild(repo->htmlUrl.c_str(), 
-				ImVec2(0, 0), 
-				ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY, 
-				ImGuiWindowFlags_AlwaysUseWindowPadding 
-				| ImGuiWindowFlags_NoScrollbar 
-				| ImGuiWindowFlags_NoResize);
+			ImGui::BeginChild(repo->m_HtmlUrl.c_str(), ImVec2(), cardChildFlags, cardWinFlags);
 
-			std::string date = Utils::FormatDateShort(repo->lastUpdate);
-			const char* desc = repo->description.empty() ? "No description." : repo->description.c_str();
-			ImGuiStyle& style = ImGui::GetStyle();
-			ImVec4 textCol = style.Colors[ImGuiCol_Text];
-			const auto titleSize = ImGui::CalcTextSize(repo->name.c_str());
-			const bool tileHovered = ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(),
-			                             ImVec2(ImGui::GetCursorScreenPos().x + titleSize.x + 5.f,
-			                                 ImGui::GetCursorScreenPos().y + titleSize.y + 5.f)) && !m_SortPopupOpen;
+			const std::string& name = repo->m_Name;
+			const std::string& desc = repo->m_Description.empty() ? "No description." : repo->m_Description;
+			std::string date        = Utils::FormatDateShort(repo->m_LastUpdate);
+
+			ImGuiStyle& style      = ImGui::GetStyle();
+			ImVec4 textCol         = style.Colors[ImGuiCol_Text];
+			const auto titleSize   = ImGui::CalcTextSize(name.c_str());
+			const auto rectMax     = ImVec2(ImGui::GetCursorScreenPos().x + titleSize.x + 5.f, ImGui::GetCursorScreenPos().y + titleSize.y + 5.f);
+			const bool tileHovered = ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), rectMax) && !m_SortPopupOpen;
 
 			if (tileHovered)
+			{
 				ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+				ImGui::SetTooltip("Open in browser.");
+			}
 
 			if (tileHovered && ImGui::IsMouseClicked(0))
-				IO::Open(repo->htmlUrl);
+				IO::Open(repo->m_HtmlUrl);
 
 			ImGui::Spacing();
 			ImGui::TextDisabled(ICON_MS_BOOK);
 			ImGui::SameLine();
-			ImGui::TextColored(ImVec4(0.3f, 0.5f, 0.8f, 1.0f), repo->name.c_str());
+			ImGui::TextColored(ImVec4(0.3f, 0.5f, 0.8f, 1.0f), name.c_str());
 
 			ImGui::PushFont(Fonts::Small);
 			ImGui::Spacing();
 			ImGui::BeginDisabled();
-			ImGui::TextWrapped(repo->description.c_str());
+			ImGui::TextWrapped(desc.c_str());
 			ImGui::EndDisabled();
-			if (ImGui::CalcTextSize(repo->description.c_str()).y >= (ImGui::GetContentRegionAvail().y + 20))
-				ImGui::ToolTip(repo->description.c_str());
+			if (ImGui::CalcTextSize(desc.c_str()).y >= (ImGui::GetContentRegionAvail().y + 20))
+				ImGui::ToolTip(desc.c_str());
 
 			ImGui::Dummy(ImVec2(0, 10));
 
@@ -161,7 +158,7 @@ namespace YLP::Frontend
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2.f, 0.f));
 			ImGui::TextDisabled(ICON_MS_STAR);
 			ImGui::SameLine();
-			ImGui::TextDisabled("%d", repo->stars);
+			ImGui::TextDisabled("%d", repo->m_Stars);
 			ImGui::PopStyleVar();
 
 			float dateWidth = ImGui::CalcTextSize(date.c_str()).x;
@@ -170,17 +167,17 @@ namespace YLP::Frontend
 			ImGui::Separator();
 
 			ImGui::BeginDisabled(!std::filesystem::exists(g_YimPath / "scripts"));
-			if (repo->isInstalled)
+			if (repo->m_IsInstalled)
 				DrawInstalledRepo(repo);
-			else if (repo->isDownloading)
+			else if (repo->m_IsDownloading)
 			{
-				ImGui::Spinner(std::format("##{}", repo->htmlUrl).c_str(), 7.1f);
+				ImGui::Spinner("", 7.1f);
 				ImGui::Spacing();
 			}
 			else
 			{
 				if (ImGui::Button(ICON_MS_DOWNLOAD))
-					GitHubManager::DownloadRepository(repo->name);
+					GitHubManager::DownloadRepository(name);
 				ImGui::ToolTip("Download");
 			}
 			ImGui::EndDisabled();
@@ -191,8 +188,9 @@ namespace YLP::Frontend
 	public:
 		void Draw() override
 		{
-			auto sortmode = GitHubManager::GetSortMode();
-			auto state    = GitHubManager::GetState();
+			auto sortMode  = GitHubManager::GetSortMode();
+			auto sortOrder = GitHubManager::GetSortOrder();
+			auto state     = GitHubManager::GetState();
 
 			if (ImGui::Button(ICON_MS_SORT))
 				ImGui::OpenPopup("##sortScripts");
@@ -207,14 +205,27 @@ namespace YLP::Frontend
 			if (ImGui::BeginPopup("##sortScripts"))
 			{
 				m_SortPopupOpen = true;
+
+				ImGui::TextDisabled("Sort By");
+				ImGui::Spacing();
+
 				for (const auto& opt : SortOptions)
 				{
-					if (ImGui::MenuItem(opt.label, nullptr, (opt.mode == sortmode)))
-					{
+					if (ImGui::MenuItem(opt.label, nullptr, (opt.mode == sortMode)))
 						GitHubManager::SetSortMode(opt.mode);
-						ImGui::CloseCurrentPopup();
-					}
 				}
+
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::TextDisabled("Order");
+				ImGui::Spacing();
+
+				if (ImGui::MenuItem(ICON_MS_ARROW_UPWARD " Ascending", nullptr, (sortOrder == ASC)))
+					GitHubManager::SetSortOrder(ASC);
+
+				if (ImGui::MenuItem(ICON_MS_ARROW_DOWNWARD " Descending", nullptr, (sortOrder == DESC)))
+					GitHubManager::SetSortOrder(DESC);
+
 				ImGui::EndPopup();
 			}
 			else
@@ -248,6 +259,7 @@ namespace YLP::Frontend
 				auto region		 = ImGui::GetContentRegionAvail();
 				auto minsize	 = std::min(region.x * 0.5f, region.y * 0.5f);
 				auto spinnerSize = ImVec2(minsize, minsize);
+
 				ImGui::SetCursorPos((ImGui::GetCursorPos() + region - spinnerSize) * 0.5);
 				ImGui::YLPSpinner("##loading", spinnerSize);
 				ImGui::Spacing();
@@ -267,7 +279,7 @@ namespace YLP::Frontend
 				ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.f);
 				for (size_t i = 0; i < repos.size(); ++i)
 				{
-					if (searchBuffer[0] != '\0' && Utils::StringToLower(repos[i]->name).find(searchBuffer) == std::string::npos)
+					if (searchBuffer[0] != '\0' && Utils::StringToLower(repos[i]->m_Name).find(searchBuffer) == std::string::npos)
 						continue;
 
 					DrawRepoCard(repos[i]);

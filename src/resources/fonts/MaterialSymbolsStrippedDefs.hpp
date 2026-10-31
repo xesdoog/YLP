@@ -22,8 +22,10 @@ along with YLP.  If not, see <https://www.gnu.org/licenses/>.
 #define ICON_MIN_MS 0xE037
 #define ICON_MAX_MS 0xF8B6
 
+#define ICON_MS_ARROW_DOWNWARD                           "\xEE\x97\x9B" // U+E5DB
 #define ICON_MS_ARROW_MENU_CLOSE                         "\xEF\x8F\x93" // U+F3D3
 #define ICON_MS_ARROW_MENU_OPEN                          "\xEF\x8F\x92" // U+F3D2
+#define ICON_MS_ARROW_UPWARD                             "\xEE\x97\x98" // U+E5D8
 #define ICON_MS_BACKGROUND_REPLACE                       "\xEF\x88\x8A" // U+F20A
 #define ICON_MS_BACKSPACE                                "\xEE\x85\x8A" // U+E14A
 #define ICON_MS_BLOCK                                    "\xEF\x82\x8C" // U+F08C

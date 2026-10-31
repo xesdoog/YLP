@@ -31,18 +31,11 @@
 
 namespace YLP::Utils
 {
-	struct IconData
-	{
-		std::vector<unsigned char> pixels;
-		int width = 0;
-		int height = 0;
-	};
-
 	struct HttpResponse
 	{
 		std::string body;
 		std::string eTag;
-		int status = 0;
+		int status   = 0;
 		bool success = false;
 	};
 
@@ -67,8 +60,6 @@ namespace YLP::Utils
 	std::optional<uint8_t> CharToHex(char const c);
 
 	void CharToLower(char* c);
-
-	IconData HICONToRGBA(HICON hIcon); // useless
 
 	const std::string RegexMatchHtml(const std::wstring& host, const std::wstring& path, const std::string& ptrn, const int& index = 0);
 	const std::string CalcSha256(const std::filesystem::path& filePath);

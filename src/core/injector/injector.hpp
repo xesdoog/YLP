@@ -52,7 +52,7 @@ namespace YLP::Injector
 
 	InjectResult NativeInject(HANDLE hProcess, const fs::path& dllPath);
 	InjectResult ManualMap(HANDLE hProcess, const BYTE* dllData, size_t dllSize, InjectorConfig config);
-	InjectResult Inject(const std::string_view& processName, std::filesystem::path dllPath, const InjectorConfig& cfg = {});
+	InjectResult Inject(const std::string_view& processName, fs::path dllPath, const InjectorConfig& cfg = {});
 
 	inline void to_json(nlohmann::json& j, const InjectorConfig& cfg)
 	{

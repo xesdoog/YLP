@@ -289,7 +289,7 @@ namespace YLP
 				}
 				else
 				{
-					const uint8_t flag = (m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
+					const uint8_t flag = (m_Version == YimMenuV1) ? AT_LEGACY : AT_ENHANCED;
 					if ((Config().menuAutoUpdateFlags & flag))
 						autoupdate = true;
 					else

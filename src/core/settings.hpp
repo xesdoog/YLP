@@ -23,12 +23,14 @@
 
 namespace YLP
 {
-	enum eAutoMonitorFlags : uint8_t
+	using json = nlohmann::json;
+
+	enum eAutomationTarget : uint8_t
 	{
-		MonitorNone		= 0,
-		MonitorLegacy	= 1 << 0,
-		MonitorEnhanced = 1 << 1,
-		MonitorBoth		= MonitorLegacy | MonitorEnhanced
+		AT_NONE		= 0,
+		AT_LEGACY	= 1 << 0,
+		AT_ENHANCED = 1 << 1,
+		AT_BOTH     = AT_LEGACY | AT_ENHANCED
 	};
 
 	enum eLuaRepoSortMode : uint8_t
@@ -39,7 +41,7 @@ namespace YLP
 		INSTALLED
 	};
 
-	using namespace nlohmann;
+	enum eLuaRepoSortOrder : uint8_t { ASC, DESC };
 
 	class Settings : public Singleton<Settings>
 	{
@@ -79,9 +81,10 @@ namespace YLP
 			int launcherIndex        = -1;
 			float bgAlphaMultiplier  = 1.0f;
 
-			uint8_t autoMonitorFlags	= MonitorNone;
-			uint8_t menuAutoUpdateFlags = MonitorNone;
-			uint8_t luaRepoSortMode		= eLuaRepoSortMode::COMMIT;
+			uint8_t autoMonitorFlags    = AT_NONE;
+			uint8_t menuAutoUpdateFlags = AT_NONE;
+			uint8_t luaRepoSortMode     = eLuaRepoSortMode::COMMIT;
+			uint8_t luaRepoSortOrder    = eLuaRepoSortOrder::DESC;
 
 			std::string uuid{};
 			std::vector<IO::DllInfo> savedDlls{};
@@ -177,6 +180,7 @@ namespace YLP
 			j["auto_monitor_flags"]      = m_Config.autoMonitorFlags;
 			j["menu_auto_update_flags"]  = m_Config.menuAutoUpdateFlags;
 			j["lua_repo_sort_mode"]      = m_Config.luaRepoSortMode;
+			j["lua_repo_sort_order"]     = m_Config.luaRepoSortOrder;
 			j["launcher_idx"]            = m_Config.launcherIndex;
 			j["bg_alpha_multiplier"]     = m_Config.bgAlphaMultiplier;
 			j["main_window_index"]       = m_Config.mainWindowIndex;
@@ -203,12 +207,12 @@ namespace YLP
 
 			for (const auto& dll : m_Config.savedDlls)
 				j["saved_dlls"].push_back({
-				    {"name",				dll.name},
-				    {"path",				dll.filepath.string()},
-				    {"checksum",			dll.checksum},
-				    {"is64bit",				dll.is64bit},
-				    {"has_exports",			dll.hasExports},
-				    {"last_process_name",	dll.lastKnownProcess},
+				    {"name",				dll.m_Name},
+				    {"path",				dll.m_Path.string()},
+				    {"checksum",			dll.m_Checksum},
+				    {"is64bit",				dll.m_Is64bit},
+				    {"has_exports",			dll.m_HasExports},
+				    {"last_process_name",	dll.m_LastKnownProcess},
 				});
 
 			for (const auto& pair : m_Config.gtaExePaths)
@@ -241,9 +245,10 @@ namespace YLP
 			}
 			f.close();
 
-			m_Config.autoMonitorFlags     = j.value("auto_monitor_flags", MonitorNone);
-			m_Config.menuAutoUpdateFlags  = j.value("menu_auto_update_flags", MonitorNone);
+			m_Config.autoMonitorFlags     = j.value("auto_monitor_flags", AT_NONE);
+			m_Config.menuAutoUpdateFlags  = j.value("menu_auto_update_flags", AT_NONE);
 			m_Config.luaRepoSortMode      = j.value("lua_repo_sort_mode", eLuaRepoSortMode::COMMIT);
+			m_Config.luaRepoSortOrder     = j.value("lua_repo_sort_order", eLuaRepoSortOrder::DESC);
 			m_Config.lastTabIndex         = j.value("last_tab_index", 0);
 			m_Config.windowAccentState    = j.value("window_accent_state", 0);
 			m_Config.mainWindowIndex      = j.value("main_window_index", 0);
@@ -277,14 +282,14 @@ namespace YLP
 					if (!IO::Exists(path))
 						continue;
 
-					IO::DllInfo dll{.ok = true};
-
-					dll.filepath         = path;
-					dll.name             = entry.value("name", "");
-					dll.checksum         = entry.value("checksum", "");
-					dll.lastKnownProcess = entry.value("last_process_name", "");
-					dll.is64bit          = entry.value("is64bit", false);
-					dll.hasExports       = entry.value("has_exports", false);
+					IO::DllInfo dll{};
+					dll.m_Ok                   = true;
+					dll.m_Path                 = path;
+					dll.m_Name                 = entry.value("name", "");
+					dll.m_Checksum             = entry.value("checksum", "");
+					dll.m_LastKnownProcess     = entry.value("last_process_name", "");
+					dll.m_Is64bit              = entry.value("is64bit", false);
+					dll.m_HasExports           = entry.value("has_exports", false);
 
 					m_Config.savedDlls.push_back(std::move(dll));
 				}

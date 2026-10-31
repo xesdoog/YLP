@@ -285,14 +285,16 @@ namespace YLP::Injector
 		return InjectResult::Ok();
 	}
 
-	InjectResult Inject(const std::string_view& processName, std::filesystem::path dllPath, const InjectorConfig& cfg)
+	InjectResult Inject(const std::string_view& processName, fs::path dllPath, const InjectorConfig& cfg)
 	{
-		auto dllInfo = IO::ValidateDLL(dllPath);
-		if (!dllInfo.ok)
-			return InjectResult::Err("PE validation failed: " + dllInfo.error);
+		IO::DllInfo dllInfo{};
+		IO::ValidateDLL(dllInfo);
+
+		if (!dllInfo.m_Ok)
+			return InjectResult::Err("PE validation failed with error: " + dllInfo.m_Error);
 
 		if (!dllPath.is_absolute())
-			dllPath = std::filesystem::absolute(dllPath);
+			dllPath = fs::absolute(dllPath);
 
 		auto maybepid = PsUtils::GetProcessId(processName);
 		if (!maybepid.has_value())

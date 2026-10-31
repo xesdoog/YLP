@@ -20,6 +20,27 @@
 
 namespace YLP::PsUtils
 {
+	ProcessList::ProcessList()
+	{
+		if (auto maybeData = GetIconFromProcessPath(""); maybeData.has_value())
+		{
+			auto& data = maybeData.value();
+			Renderer::RequestTextureRaw(data.m_Data,
+			    data.m_Width,
+			    data.m_Height,
+			    "Default Process Icon",
+			    &m_DefaultProcessIcon,
+			    false);
+		}
+	}
+
+	const ImTextureID ProcessList::GetProcessIconImpl(const fs::path& path)
+	{
+		if (auto it = m_ProcessIcons.find(path); it != m_ProcessIcons.end() && it->second.m_ImTex)
+			return it->second.m_ImTex;
+
+		return m_DefaultProcessIcon;
+	}
 
 	void ProcessList::StartUpdatingImpl()
 	{
@@ -64,15 +85,49 @@ namespace YLP::PsUtils
 			return;
 
 		PROCESSENTRY32W entry{.dwSize = sizeof(entry)};
-		std::vector<ProcessEntry> tempList;
+		std::vector<ProcessEntry> tempList{};
 
 		if (Process32FirstW(snapshot, &entry))
 		{
 			do
 			{
-				char name[260];
+				char name[260]{};
 				WideCharToMultiByte(CP_UTF8, 0, entry.szExeFile, -1, name, sizeof(name), nullptr, nullptr);
-				tempList.push_back({.m_Name = name, .m_Pid = entry.th32ProcessID});
+
+				fs::path filePath{};
+				DWORD pid = entry.th32ProcessID;
+
+				ScopedHandle hProcess(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid));
+				if (hProcess)
+				{
+					wchar_t buffer[MAX_PATH]{};
+					DWORD size = MAX_PATH;
+
+					if (QueryFullProcessImageNameW(hProcess.Get(), 0, buffer, &size))
+						filePath = fs::path(buffer);
+				}
+
+				tempList.push_back({.m_Name = name, .m_Pid = pid, .m_ExePath = filePath});
+
+				if (auto it = m_ProcessIcons.find(filePath); it == m_ProcessIcons.end())
+				{
+					if (auto maybeData = GetIconFromProcessPath(filePath); maybeData.has_value())
+					{
+						auto& data               = maybeData.value();
+						m_ProcessIcons[filePath] = std::move(data);
+						auto& cached             = m_ProcessIcons.at(filePath);
+
+						Renderer::RequestTextureRaw(
+						    cached.m_Data,
+						    cached.m_Width,
+						    cached.m_Height,
+						    std::format("{} Icon", name),
+						    &cached.m_ImTex,
+						    false);
+					}
+					else
+						m_ProcessIcons[filePath] = ProcessIconData{.m_LoadRequested = true};
+				}
 			} while (Process32NextW(snapshot, &entry));
 		}
 
@@ -222,5 +277,68 @@ namespace YLP::PsUtils
 		ewd.m_Pid = pid;
 		EnumWindows(EnumProcessWindows, reinterpret_cast<LPARAM>(&ewd));
 		return ewd.m_HWND;
+	}
+
+	std::optional<ProcessIconData> GetIconFromProcessPath(const fs::path& exePath)
+	{
+		HICON hIcon      = nullptr;
+		UINT extracted   = 0;
+		LPCWSTR lpszFile = exePath.empty() ? L"shell32.dll" : exePath.c_str(); // if we pass an empty path we get the default windows 'missing' icon (idk what it's called)
+		int nIconIndex   = exePath.empty() ? 2 : 0;
+
+		if (ExtractIconExW(lpszFile, nIconIndex, &hIcon, nullptr, 1) == 0 || !hIcon)
+			return std::nullopt;
+
+		ScopedIconHandle iconGuard(hIcon);
+		constexpr int size = 32;
+
+		BITMAPINFO bmi{};
+		bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth       = size;
+		bmi.bmiHeader.biHeight      = -size;
+		bmi.bmiHeader.biPlanes      = 1;
+		bmi.bmiHeader.biBitCount    = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+
+		void* dibPixels = nullptr;
+
+		HDC hdc = CreateCompatibleDC(nullptr);
+		if (!hdc)
+			return std::nullopt;
+
+		ScopedDC dcGuard(hdc);
+		HBITMAP bitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &dibPixels, nullptr, 0);
+		if (!bitmap || !dibPixels)
+		{
+			if (bitmap)
+				DeleteObject(bitmap);
+			return std::nullopt;
+		}
+
+		ScopedBitmap bitmapGuard(bitmap);
+		HGDIOBJ oldBitmap = SelectObject(hdc, bitmap);
+		const bool drawn  = DrawIconEx(hdc, 0, 0, hIcon, size, size, 0, nullptr, DI_NORMAL);
+
+		SelectObject(hdc, oldBitmap);
+
+		if (!drawn)
+			return std::nullopt;
+
+		ProcessIconData data{};
+		data.m_Width  = size;
+		data.m_Height = size;
+		data.m_Data.resize(static_cast<size_t>(size * size * 4));
+
+		const auto* src = static_cast<const uint8_t*>(dibPixels);
+		for (size_t i = 0; i < size * size; ++i)
+		{
+			const size_t offset = i * 4;
+			data.m_Data[offset + 0] = src[offset + 2];
+			data.m_Data[offset + 1] = src[offset + 1];
+			data.m_Data[offset + 2] = src[offset + 0];
+			data.m_Data[offset + 3] = src[offset + 3];
+		}
+
+		return data;
 	}
 }

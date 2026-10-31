@@ -170,7 +170,7 @@ namespace YLP
 
 		LOG_INFO("[ProcMon]: Preparing to auto-inject...");
 
-		bool isLegacy  = (m_MonitorMode == MonitorLegacy);
+		bool isLegacy  = (m_MonitorMode == AT_LEGACY);
 		auto& pointers = isLegacy ? g_Pointers.Legacy : g_Pointers.Enhanced;
 		if (!pointers.GameTime || !pointers.GameState)
 		{
@@ -345,7 +345,7 @@ namespace YLP
 							m_Found = false;
 							m_Scanner.reset();
 
-							auto& pointers = (m_MonitorMode == MonitorLegacy) ? g_Pointers.Legacy : g_Pointers.Enhanced;
+							auto& pointers = (m_MonitorMode == AT_LEGACY) ? g_Pointers.Legacy : g_Pointers.Enhanced;
 							pointers.Reset();
 							std::this_thread::sleep_for(20s);
 						}

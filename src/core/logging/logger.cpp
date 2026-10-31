@@ -91,17 +91,15 @@ namespace YLP
 
 		const std::string ts = Utils::FormatTime();
 		const LogEntry entry{
-			.timestamp = ts,
-			.level = lvl,
-			.message = std::string(msg),
-		    .filename = fs::path(location.file_name()).filename().string(),
-		    .line = std::to_string(location.line()),
-		    .funcname = location.function_name()
+		    .timestamp = ts,
+		    .level     = lvl,
+		    .message   = std::string(msg),
+		    .filename  = fs::path(location.file_name()).filename().string(),
+		    .line      = std::to_string(location.line()),
+		    .funcname  = location.function_name()
 		};
 
 		for (auto& s : m_Sinks)
-		{
 			s->Write(entry);
-		}
 	}
 }

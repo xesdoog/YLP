@@ -30,7 +30,7 @@ namespace YLP::Frontend
 	{
 	public:
 		InjectorTab() :
-		    GuiTab(eTabID::TAB_INJECTOR, ICON_MS_BROWSE, "Injector")
+		    GuiTab(eTabID::TAB_INJECTOR, ICON_MS_SYRINGE, "Injector")
 		{
 		}
 
@@ -38,7 +38,8 @@ namespace YLP::Frontend
 		void DrawProcessList()
 		{
 			auto processes      = ProcessList::GetSnapshot();
-			std::string preview = selectedProcess.m_Name.empty() ? "None" : std::format("{}  [{}]", selectedProcess.m_Name, selectedProcess.m_Pid);
+			float lineHeight    = ImGui::GetTextLineHeight();
+			std::string preview = selectedProcess.m_Name.empty() ? "None." : std::format("{}  [{}]", selectedProcess.m_Name, selectedProcess.m_Pid);
 
 			ImGui::Spacing();
 			ImGui::TextCentered("Target Process", Fonts::Title);
@@ -82,12 +83,21 @@ namespace YLP::Frontend
 						auto& p    = processes[i];
 						auto& name = p.m_Name;
 
-						if (p.m_Pid == 0 || name.empty() || name == "YLP.exe")
+						if (p.m_Pid == 0 || name.empty())
 							continue;
 
 						auto nameLower = Utils::StringToLower(name);
+						if (nameLower == "ylp.exe")
+							continue;
+
 						if (searchBuffer[0] != '\0' && nameLower.find(searchBuffer) == std::string::npos)
 							continue;
+
+						if (const auto& tex = ProcessList::GetProcessIcon(p.m_ExePath); tex != NULL)
+						{
+							ImGui::Image(tex, ImVec2(lineHeight, lineHeight));
+							ImGui::SameLine();
+						}
 
 						ImGui::PushID(p.m_Pid);
 						ImGui::Selectable(name.c_str(), p.m_Pid == selectedProcess.m_Pid);
@@ -112,10 +122,11 @@ namespace YLP::Frontend
 				initialized = false;
 			}
 		}
+
 		void OnFileSelected(const IO::DllInfo& file)
 		{
-			std::string lastKnown = file.lastKnownProcess;
-			if (file.checksum == lastSelectedDLL || selectedProcess.m_Name == lastKnown)
+			std::string lastKnown = file.m_LastKnownProcess;
+			if (file.m_Checksum == lastSelectedDLL && selectedProcess.m_Name == lastKnown)
 				return;
 
 			if (lastKnown.empty())
@@ -130,7 +141,7 @@ namespace YLP::Frontend
 				if (p.m_Name == lastKnown)
 				{
 					selectedProcess = p;
-					lastSelectedDLL = file.checksum;
+					lastSelectedDLL = file.m_Checksum;
 					break;
 				}
 			}
@@ -140,22 +151,24 @@ namespace YLP::Frontend
 		{
 			ThreadManager::RunDetached([&]() {
 				auto newdll = IO::AddDLL();
-				if (newdll.filepath.empty())
+				if (newdll.m_Path.empty())
 					return;
 
-				if (!newdll.ok && newdll.error != "Canceled by user")
+				if (!newdll.m_Ok && newdll.m_Error != "Canceled by user")
 				{
-					LOG_ERROR("Failed to add DLL file: {}", newdll.error);
+					LOG_ERROR("Failed to add DLL file: {}", newdll.m_Error);
 					return;
 				}
 
 				{
 					std::scoped_lock lock(m_Mutex);
-					std::erase_if(savedDLLs, [&](const IO::DllInfo& d) {
-						return d.filepath == newdll.filepath || d.checksum == newdll.checksum;
-					});
-
-					savedDLLs.push_back(newdll);
+					if (auto it = std::find(savedDLLs.begin(), savedDLLs.end(), newdll); it != savedDLLs.end())
+					{
+						newdll.m_LastKnownProcess = it->m_LastKnownProcess;
+						*it = newdll;
+					}
+					else
+						savedDLLs.push_back(newdll);
 				}
 			});
 		}
@@ -167,13 +180,10 @@ namespace YLP::Frontend
 
 			isRefreshingList.store(true);
 
-			ThreadManager::RunDetached([this, savedDLLs]() {
+			ThreadManager::RunDetached([this, &savedDLLs]() {
 				std::scoped_lock lock(m_Mutex);
-				for (auto file : savedDLLs)
-				{
-					auto& path = file.filepath;
-					file       = IO::ValidateDLL(path);
-				}
+				for (auto& dll : savedDLLs)
+					ValidateDLL(dll);
 
 				isRefreshingList.store(false);
 			});
@@ -236,11 +246,11 @@ namespace YLP::Frontend
 			for (int i = 0; i < savedDLLs.size(); i++)
 			{
 				auto& dll = savedDLLs[i];
-				if (dll.filepath.empty())
+				if (dll.m_Path.empty())
 					continue;
 
-				auto label    = dll.filepath.filename().string();
-				bool hasError = !dll.ok;
+				auto label    = dll.m_Path.filename().string();
+				bool hasError = !dll.m_Ok;
 
 				if (hasError)
 				{
@@ -249,9 +259,9 @@ namespace YLP::Frontend
 					label += ("  " ICON_MS_EXCLAMATION);
 				}
 
-				ImGui::PushID(&dll.checksum);
-				ImGui::BeginDisabled(dndTarget == dll.checksum);
-				ImGui::Selectable(label.c_str(), dll.filepath == selectedDLL.filepath);
+				ImGui::PushID(&dll.m_Checksum);
+				ImGui::BeginDisabled(dndTarget == dll.m_Checksum);
+				ImGui::Selectable(label.c_str(), dll.m_Path == selectedDLL.m_Path);
 				isHoveringAfile = isHoveringAfile || ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled);
 				ImGui::EndDisabled();
 				ImGui::PopID();
@@ -259,9 +269,9 @@ namespace YLP::Frontend
 				if (hasError)
 				{
 					ImGui::PopStyleColor(2);
-					ImGui::ToolTip(dll.error.empty() ? "This file has an error. Consider removing or re-uploading it." : dll.error.c_str());
+					ImGui::ToolTip(dll.m_Error.empty() ? "This file has an error. Consider removing or re-uploading it." : dll.m_Error.c_str());
 				}
-				else if (dndTarget != dll.checksum)
+				else if (dndTarget != dll.m_Checksum)
 					ImGui::ToolTip("Drag to reorder or right click to open the context menu.");
 
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
@@ -274,18 +284,18 @@ namespace YLP::Frontend
 				{
 					selectedDLL = dll;
 					OnFileSelected(dll);
-					ImGui::OpenPopup(dll.checksum.c_str());
+					ImGui::OpenPopup(dll.m_Checksum.c_str());
 				}
 
-				if (ImGui::BeginPopup(dll.checksum.c_str()))
+				if (ImGui::BeginPopup(dll.m_Checksum.c_str()))
 				{
 					if (ImGui::MenuItem(ICON_MS_DELETE " Remove"))
 					{
 						std::scoped_lock lock(m_Mutex);
 						std::erase_if(savedDLLs, [&](auto& d) {
-							if (d.filepath == dll.filepath)
+							if (d.m_Path == dll.m_Path)
 							{
-								if (dll.checksum == selectedDLL.checksum)
+								if (dll.m_Checksum == selectedDLL.m_Checksum)
 									selectedDLL = {};
 								return true;
 							}
@@ -303,7 +313,7 @@ namespace YLP::Frontend
 
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 				{
-					dndTarget = dll.checksum;
+					dndTarget = dll.m_Checksum;
 					ImGui::SetDragDropPayload("DLLINFO_INDEX", &i, sizeof(int));
 					ImGui::Selectable((label).c_str(), true);
 					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -351,7 +361,7 @@ namespace YLP::Frontend
 			ImGui::Spacing();
 			ImGui::Text("Mode:");
 			ImGui::SetNextItemWidth(injectBtnSize.x);
-			ImGui::Combo("##Mode", &injectorCfg.m_Mode, "Standard\0Manual Map");
+			ImGui::Combo("##Mode", &injectorCfg.m_Mode, "Standard\0Manual Mapping\0");
 
 			if (injectorCfg.m_Mode == 1)
 			{
@@ -386,13 +396,13 @@ namespace YLP::Frontend
 				ImGui::EndChild();
 			}
 
-			ImGui::BeginDisabled(!selectedProcess.m_Pid || !selectedDLL.ok);
+			ImGui::BeginDisabled(!selectedProcess.m_Pid || !selectedDLL.m_Ok);
 			if (ImGui::Button(ICON_MS_SYRINGE " Inject", injectBtnSize))
 			{
 				ThreadManager::RunDetached([&]() {
 					try
 					{
-						auto result = Injector::Inject(selectedProcess.m_Name, selectedDLL.filepath, cfg.injectorConfig);
+						auto result = Injector::Inject(selectedProcess.m_Name, selectedDLL.m_Path, cfg.injectorConfig);
 						if (!result.m_Success)
 						{
 							LOG_ERROR(result.m_Message);
@@ -400,12 +410,8 @@ namespace YLP::Frontend
 							return;
 						}
 
-						auto it = std::ranges::find_if(cfg.savedDlls, [&](const IO::DllInfo& d) {
-							return d.checksum == selectedDLL.checksum;
-						});
-
-						if (it != cfg.savedDlls.end())
-							it->lastKnownProcess = selectedProcess.m_Name;
+						if (auto it = std::find(cfg.savedDlls.begin(), cfg.savedDlls.end(), selectedDLL); it != cfg.savedDlls.end())
+							it->m_LastKnownProcess = selectedProcess.m_Name;
 					}
 					catch (const std::exception& e)
 					{
@@ -416,8 +422,8 @@ namespace YLP::Frontend
 			ImGui::EndDisabled();
 			if (!selectedProcess.m_Pid)
 				ImGui::ToolTip("Please choose a target process from the list above.");
-			else if (!selectedDLL.ok)
-				ImGui::ToolTip(selectedDLL.error.empty() ? "Please select a valid file from your library." : selectedDLL.error.c_str());
+			else if (!selectedDLL.m_Ok)
+				ImGui::ToolTip(selectedDLL.m_Error.empty() ? "Please select a valid file from your library." : selectedDLL.m_Error.c_str());
 
 			ImGui::EndChild();
 
@@ -440,10 +446,10 @@ namespace YLP::Frontend
 				if (ImGui::SelectableLabel(ICON_MS_CLEAR))
 					ImGui::CloseCurrentPopup();
 
-				ImGui::TextCentered(selectedDLL.name.c_str(), Fonts::Bold);
+				ImGui::TextCentered(selectedDLL.m_Name.c_str(), Fonts::Bold);
 				ImGui::Spacing();
 
-				std::string lastProcessText = selectedDLL.lastKnownProcess.empty() ? "None" : selectedDLL.lastKnownProcess;
+				std::string lastProcessText = selectedDLL.m_LastKnownProcess.empty() ? "None" : selectedDLL.m_LastKnownProcess;
 				ImGuiTableFlags tableFlags  = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInner | ImGuiTableFlags_RowBg;
 				if (ImGui::BeginTable("##fileInfo", 2, tableFlags))
 				{
@@ -455,28 +461,29 @@ namespace YLP::Frontend
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Architecture");
 					ImGui::TableSetColumnIndex(1);
-					ImGui::TextWrapped(selectedDLL.is64bit ? "x86-64" : "x86");
+					ImGui::TextWrapped(selectedDLL.m_Is64bit ? "x86-64" : "x86");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Has Exports");
 					ImGui::TableSetColumnIndex(1);
-					ImGui::TextWrapped(selectedDLL.hasExports ? "Yes" : "No");
+					ImGui::TextWrapped(selectedDLL.m_HasExports ? "Yes" : "No");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("File Path");
-					ImGui::TableSetColumnIndex(1);
-					if (ImGui::SelectableLabel(ICON_MS_OPEN_IN_NEW))
-						IO::HighlightFile(selectedDLL.filepath.string());
 					ImGui::SameLine();
-					ImGui::TextWrapped(selectedDLL.filepath.string().c_str());
+					if (ImGui::SelectableLabel(ICON_MS_OPEN_IN_NEW))
+						IO::HighlightFile(selectedDLL.m_Path.string());
+
+					ImGui::TableSetColumnIndex(1);
+					ImGui::TextWrapped(selectedDLL.m_Path.string().c_str());
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("SHA256 Hash");
 					ImGui::TableSetColumnIndex(1);
-					ImGui::TextWrapped(selectedDLL.checksum.c_str());
+					ImGui::TextWrapped(selectedDLL.m_Checksum.c_str());
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -484,7 +491,7 @@ namespace YLP::Frontend
 					ImGui::TableSetColumnIndex(1);
 					ImGui::TextWrapped(lastProcessText.c_str());
 
-					auto& fileErr = selectedDLL.error;
+					auto& fileErr = selectedDLL.m_Error;
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Issue(s):");

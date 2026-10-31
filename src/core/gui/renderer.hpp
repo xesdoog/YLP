@@ -41,6 +41,13 @@ namespace YLP
 		Renderer& operator=(const Renderer&)     = delete;
 		Renderer& operator=(Renderer&&) noexcept = delete;
 
+		enum eTextureLoadType : uint8_t
+		{
+			TLT_FILE,
+			TLT_MEMORY,
+			TLT_RAW,
+		};
+
 		static void Destroy()
 		{
 			GetInstance().DestroyImpl();
@@ -76,19 +83,34 @@ namespace YLP
 			return GetInstance().GetWindowSizeImpl();
 		}
 
-		static ImTextureID LoadTextureFromFile(const std::filesystem::path& filepath)
+		static ImTextureID LoadTextureFromFile(const fs::path& filepath, bool verbose = true)
 		{
-			return GetInstance().LoadTextureFromFileImpl(filepath);
+			return GetInstance().LoadTextureFromFileImpl(filepath, verbose);
 		}
 
-		static ImTextureID LoadTextureFromMemory(const unsigned char* data, size_t size, const std::string& name)
+		static ImTextureID LoadTextureFromMemory(const unsigned char* data, size_t size, const std::string& name, bool verbose = true)
 		{
-			return GetInstance().LoadTextureFromMemoryImpl(data, size, name);
+			return GetInstance().LoadTextureFromMemoryImpl(data, size, name, verbose);
 		}
 
-		static ImTextureID LoadRawTexture(const unsigned char* rgbaData, int w, int h, const std::string& name)
+		static ImTextureID LoadRawTexture(const unsigned char* rgbaData, int w, int h, const std::string& name, bool verbose = true)
 		{
-			return GetInstance().LoadRawTextureImpl(rgbaData, w, h, name);
+			return GetInstance().LoadRawTextureImpl(rgbaData, w, h, name, verbose);
+		}
+
+		static void RequestTextureFromFile(const fs::path& filepath, ImTextureID* outTexture, bool verbose)
+		{
+			GetInstance().RequestTextureImpl(filepath, outTexture, verbose);
+		}
+
+		static void RequestTextureFromMemory(const std::vector<uint8_t> data, size_t size, const std::string& name, ImTextureID* outTexture, bool verbose)
+		{
+			GetInstance().RequestTextureImpl(data, size, name, outTexture, verbose);
+		}
+
+		static void RequestTextureRaw(const std::vector<uint8_t> rgbaData, int w, int h, const std::string& name, ImTextureID* outTexture, bool verbose)
+		{
+			GetInstance().RequestTextureImpl(rgbaData, w, h, name, outTexture, verbose);
 		}
 
 		static void ReleaseTexture(const std::string& name)
@@ -125,10 +147,14 @@ namespace YLP
 
 		std::optional<ImTextureID> FindTextureByName(const std::string& name);
 
-		ImTextureID LoadTextureFromFileImpl(const std::filesystem::path& filepath);
-		ImTextureID LoadTextureFromMemoryImpl(const unsigned char* data, size_t size, const std::string& name);
-		ImTextureID LoadRawTextureImpl(const unsigned char* rgbaData, int w, int h, const std::string& name);
+		ImTextureID LoadTextureFromFileImpl(const fs::path& filepath, bool verbose);
+		ImTextureID LoadTextureFromMemoryImpl(const unsigned char* data, size_t size, const std::string& name, bool verbose);
+		ImTextureID LoadRawTextureImpl(const unsigned char* rgbaData, int w, int h, const std::string& name, bool verbose);
 
+		void RequestTextureImpl(const fs::path& filepath, ImTextureID* outTexture, bool verbose);
+		void RequestTextureImpl(const std::vector<uint8_t> data, size_t size, const std::string& name, ImTextureID* outTexture, bool verbose);
+		void RequestTextureImpl(const std::vector<uint8_t> rgbaData, int w, int h, const std::string& name, ImTextureID* outTexture, bool verbose);
+		void ProcessTextureRequests();
 		void ReleaseTextureImpl(const std::string& name);
 		void ReleaseTextureImpl(const ImTextureID& imguiID);
 
@@ -145,6 +171,7 @@ namespace YLP
 		int m_Height = 720;
 
 		std::chrono::steady_clock::time_point m_LastResizeTime;
+		std::chrono::steady_clock::time_point m_LastPendingTexProcessTime;
 
 		LRESULT WndProcImpl(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -156,8 +183,26 @@ namespace YLP
 			int m_RefCount = 1;
 		};
 
+		struct PendingTexture
+		{
+			std::string m_Name;
+			fs::path m_FilePath;
+
+			std::vector<uint8_t> m_TexData;
+			size_t m_DataSize;
+
+			int m_Width;
+			int m_Height;
+
+			eTextureLoadType m_LoadType;
+			ImTextureID* m_OutId;
+		};
+
 		std::mutex m_TextureMutex;
+		std::mutex m_PendingTextureMutex;
+
 		std::vector<Texture> m_Textures;
+		std::vector<PendingTexture> m_PendingTextures;
 
 		static Renderer& GetInstance()
 		{

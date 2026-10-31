@@ -87,7 +87,7 @@ namespace YLP::Frontend
 			ImGui::Checkbox("Disable Tooltips", &cfg.disableTooltips);
 			ImGui::HelpMarker("Disables... Well, this.");
 
-			ImGui::BeginDisabled(cfg.autoMonitorFlags == MonitorNone);
+			ImGui::BeginDisabled(cfg.autoMonitorFlags == AT_NONE);
 			ImGui::Checkbox("Auto-Exit", &cfg.autoExit);
 			ImGui::HelpMarker("Automatically exit after injecting a dll. This only works if Auto-Inject is enabled for either YimMenu Legacy or V2 or both; does nothing otherwise.");
 			ImGui::EndDisabled();

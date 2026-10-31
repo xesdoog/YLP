@@ -19,6 +19,7 @@
 
 #include "../lua_library.hpp"
 #include "../lua_module.hpp"
+#include "../wrappers/imdrawlist.hpp"
 #include "../../gui/widgets/ylp_spinner.hpp"
 
 
@@ -88,6 +89,9 @@ namespace YLP::LuaJIT
 	public:
 		void Register(sol::state& L) override
 		{
+			if (auto mod = GetModuleFromLuaState(L); mod->GetName() == "CodeExecutor")
+				return;
+
 			/*@ylp.table ImGui
 			* description: 
 				A very basic API that exposes a few ImGui widgets.
@@ -436,7 +440,6 @@ namespace YLP::LuaJIT
 			imguiTable["OpenPopup"] = [](const std::string& name, sol::optional<int> popupFlags) {
 				ImGui::OpenPopup(name.c_str(), static_cast<ImGuiPopupFlags>(popupFlags.value_or(0)));
 			};
-
 
 			/*@ylp.function ImGui.IsPopupOpen
 			* param name<string> Popup name
@@ -819,6 +822,41 @@ namespace YLP::LuaJIT
 				return ImGui::GetWindowPos();
 			};
 
+			/*@ylp.function ImGui.GetWindowWidth
+			* return number width Current window width
+			@*/
+			imguiTable["GetWindowWidth"] = []() {
+				return ImGui::GetWindowWidth();
+			};
+
+			/*@ylp.function ImGui.GetWindowHeight
+			* return number height Current window height
+			@*/
+			imguiTable["GetWindowHeight"] = []() {
+				return ImGui::GetWindowHeight();
+			};
+
+			/*@ylp.function ImGui.GetWindowDrawList
+			* return ImDrawList
+			@*/
+			imguiTable["GetWindowDrawList"] = []() {
+				return LuaImDrawList(ImGui::GetWindowDrawList());
+			};
+
+			/*@ylp.function ImGui.GetBackgroundDrawList
+			* return ImDrawList
+			@*/
+			imguiTable["GetBackgroundDrawList"] = []() {
+				return LuaImDrawList(ImGui::GetBackgroundDrawList());
+			};
+
+			/*@ylp.function ImGui.GetForegroundDrawList
+			* return ImDrawList
+			@*/
+			imguiTable["GetForegroundDrawList"] = []() {
+				return LuaImDrawList(ImGui::GetForegroundDrawList());
+			};
+
 			/*@ylp.function ImGui.GetFrameHeight
 			* return number frameHeight
 			@*/
@@ -831,6 +869,75 @@ namespace YLP::LuaJIT
 			@*/
 			imguiTable["GetFrameHeightWithSpacing"] = []() {
 				return ImGui::GetFrameHeightWithSpacing();
+			};
+
+			/*@ylp.function ImGui.GetTime
+			* return number frameTime
+			@*/
+			imguiTable["GetTime"] = []() {
+				return ImGui::GetTime();
+			};
+
+			/*@ylp.function ImGui.SetWindowSize
+			* param size<ImVec2> Window size
+			* param cond<integer?> Optional [ImGuiCond](lua://ImGuiCond)
+			@*/
+
+			/*@ylp.function ImGui.SetWindowSize
+			* param name<string> Window name
+			* param size<ImVec2> Window size
+			* param cond<integer?> Optional [ImGuiCond](lua://ImGuiCond)
+			@*/
+			imguiTable["SetWindowSize"] = sol::overload(
+				[](const ImVec2& size, sol::optional<int> cond) {
+					return ImGui::SetWindowSize(size, static_cast<ImGuiCond>(cond.value_or(0)));
+				},
+				[](const std::string& name, const ImVec2& size, sol::optional<int> cond) {
+				    return ImGui::SetWindowSize(name.c_str(), size, static_cast<ImGuiCond>(cond.value_or(0)));
+				}
+			);
+
+			/*@ylp.function ImGui.SetWindowPos
+			* param pos<ImVec2> New position
+			* param cond<integer?> Optional [ImGuiCond](lua://ImGuiCond)
+			@*/
+
+			/*@ylp.function ImGui.SetWindowPos
+			* param name<string> Window name
+			* param pos<ImVec2> New position
+			* param cond<integer?> Optional [ImGuiCond](lua://ImGuiCond)
+			@*/
+			imguiTable["SetWindowPos"] = sol::overload(
+			    [](const ImVec2& pos, sol::optional<int> cond) {
+				    return ImGui::SetWindowPos(pos, static_cast<ImGuiCond>(cond.value_or(0)));
+				},
+			    [](const std::string& name, const ImVec2& pos, sol::optional<int> cond) {
+				    return ImGui::SetWindowPos(name.c_str(), pos, static_cast<ImGuiCond>(cond.value_or(0)));
+				}
+			);
+
+			/*@ylp.function ImGui.SetNextWindowSize
+			* param pos<ImVec2>
+			* param cond<integer?> Optional [ImGuiCond](lua://ImGuiCond)
+			@*/
+			imguiTable["SetNextWindowPos"] = [](const ImVec2& pos, sol::optional<int> cond) {
+				return ImGui::SetNextWindowPos(pos, static_cast<ImGuiCond>(cond.value_or(0)));
+			};
+
+			/*@ylp.function ImGui.SetNextWindowSize
+			* param size<ImVec2>
+			* param cond<integer?> Optional [ImGuiCond](lua://ImGuiCond)
+			@*/
+			imguiTable["SetNextWindowSize"] = [](const ImVec2& size, sol::optional<int> cond) {
+				return ImGui::SetNextWindowSize(size, static_cast<ImGuiCond>(cond.value_or(0)));
+			};
+
+			/*@ylp.function ImGui.SetNextWindowSizeConstraints
+			* param minSize<ImVec2>
+			* param maxSize<ImVec2>
+			@*/
+			imguiTable["SetNextWindowSizeConstraints"] = [](const ImVec2& minSz, const ImVec2& maxSz) {
+				return ImGui::SetNextWindowSizeConstraints(minSz, maxSz);
 			};
 
 			/*@ylp.function ImGui.SetNextItemWidth
@@ -852,6 +959,27 @@ namespace YLP::LuaJIT
 			@*/
 			imguiTable["PopItemWidth"] = []() {
 				ImGui::PopItemWidth();
+			};
+
+			/*@ylp.function ImGui.SetNextWindowSize
+			* 
+			@*/
+			imguiTable["PopItemWidth"] = []() {
+				ImGui::PopItemWidth();
+			};
+
+			/*@ylp.function ImGui.IsWindowAppearing
+			* return boolean
+			@*/
+			imguiTable["IsWindowAppearing"] = []() {
+				return ImGui::IsWindowAppearing();
+			};
+
+			/*@ylp.function ImGui.IsWindowCollapsed
+			* return boolean
+			@*/
+			imguiTable["IsWindowCollapsed"] = []() {
+				return ImGui::IsWindowCollapsed();
 			};
 
 			// style stuff

@@ -172,10 +172,8 @@ namespace YLP
 		const char* notifIcon = isSnoozed ? ICON_MS_NOTIFICATIONS_OFF : (Notifier::IsViewed() ? ICON_MS_NOTIFICATIONS : ICON_MS_NOTIFICATIONS_UNREAD);
 		ImVec4 notifColor     = Notifier::IsViewed() ? style.Colors[ImGuiCol_Text] : style.Colors[ImGuiCol_CheckMark];
 
-		ImGui::PushFont(Fonts::Title);
-		ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(notifIcon).x, 5.0f));
+		ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvail().x - (ImGui::CalcTextSize(notifIcon).x * 0.5), 5.0f));
 		ImGui::TextColored(Notifier::IsOpen() ? style.Colors[ImGuiCol_ButtonActive] : notifColor, notifIcon);
-		ImGui::PopFont();
 
 		if (ImGui::IsItemHovered())
 			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);

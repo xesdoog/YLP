@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "core/scoped_resource.hpp"
+
 #include <condition_variable>
 #include <system_error>
 #include <thread>
@@ -28,15 +30,27 @@ namespace YLP::PsUtils
 {
 	struct ProcessEntry
 	{
-		std::string m_Name;
-		DWORD m_Pid        = 0;
-		ImTextureID m_Icon = NULL; // fix it or ditch it
+		std::string m_Name{};
+		DWORD m_Pid{};
+		fs::path m_ExePath{};
+	};
+
+	struct ProcessIconData
+	{
+		std::vector<uint8_t> m_Data;
+
+		int m_Width  = 0;
+		int m_Height = 0;
+
+		ImTextureID m_ImTex{};
+
+		bool m_LoadRequested = false;
 	};
 
 	struct EnumWindowData
 	{
-		DWORD m_Pid;
-		HWND m_HWND;
+		DWORD m_Pid{};
+		HWND m_HWND{};
 	};
 
 	class ProcessList : public Singleton<ProcessList>
@@ -44,9 +58,12 @@ namespace YLP::PsUtils
 		friend class Singleton<ProcessList>;
 
 	public:
+		ProcessList();
+
 		~ProcessList()
 		{
 			StopUpdating();
+			m_ProcessIcons.clear();
 		}
 
 		static void StartUpdating()
@@ -69,59 +86,35 @@ namespace YLP::PsUtils
 			return GetInstance().GetSnapshotImpl();
 		}
 
+		static const ImTextureID GetProcessIcon(const fs::path& path)
+		{
+			return GetInstance().GetProcessIconImpl(path);
+		}
+
 	private:
 		void StartUpdatingImpl();
 		void StopUpdatingImpl();
 		void UpdateProcessesImpl();
 
+		const ImTextureID GetProcessIconImpl(const fs::path& path);
+
 		const std::vector<ProcessEntry> GetSnapshotImpl();
 
 		std::vector<ProcessEntry> m_Processes{};
+		std::unordered_map<fs::path, ProcessIconData> m_ProcessIcons{};
+
 		std::mutex m_Mutex{};
-		std::thread m_Worker{};
-		std::atomic<bool> m_Running{false};
-		std::condition_variable m_ConVar{};
 		std::mutex m_CVMutex{};
+
+		std::thread m_Worker{};
+
+		std::atomic<bool> m_Running{false};
+
+		std::condition_variable m_ConVar{};
+
 		std::chrono::time_point<std::chrono::steady_clock> m_LastUpdated{};
-	};
 
-	class ScopedHandle
-	{
-		HANDLE m_Handle = INVALID_HANDLE_VALUE;
-
-	public:
-		ScopedHandle() = default;
-		explicit ScopedHandle(HANDLE h) :
-		    m_Handle(h)
-		{
-		}
-
-		~ScopedHandle()
-		{
-			Close();
-		}
-
-		bool IsValid() const noexcept
-		{
-			return m_Handle != nullptr && m_Handle != INVALID_HANDLE_VALUE;
-		}
-
-		HANDLE Get() const noexcept
-		{
-			return m_Handle;
-		}
-
-		void Close() noexcept
-		{
-			if (IsValid())
-				CloseHandle(m_Handle);
-			m_Handle = INVALID_HANDLE_VALUE;
-		}
-
-		explicit operator bool() const noexcept
-		{
-			return IsValid();
-		}
+		ImTextureID m_DefaultProcessIcon{};
 	};
 
 	std::optional<DWORD> GetProcessId(std::string_view name);
@@ -135,4 +128,5 @@ namespace YLP::PsUtils
 
 	BOOL CALLBACK EnumProcessWindows(HWND hWnd, LPARAM lParam);
 	HWND GetHwndFromPid(DWORD pid);
+	std::optional<ProcessIconData> GetIconFromProcessPath(const fs::path& exePath);
 }

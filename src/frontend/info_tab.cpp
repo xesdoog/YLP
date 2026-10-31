@@ -34,9 +34,7 @@ namespace YLP::Frontend
 
 		static inline void DrawHeaderAndText(const char* header, const char* text, std::initializer_list<const char*> bullets = {})
 		{
-			ImGui::PushFont(Fonts::Title);
-			ImGui::Text(header);
-			ImGui::PopFont();
+			ImGui::TitleText(header);
 			ImGui::Separator();
 			ImGui::TextWrapped(text);
 			if (bullets.size() > 0)
@@ -62,15 +60,9 @@ The software and author are not affiliated, associated, or endorsed by any mod m
 YLP exists solely to enhance the player's experience through transparency and convenience.
 )");
 
-			ImGui::Dummy(ImVec2(0, 10));
-			ImGui::InfoCallout(ImGui::ImCalloutType_Important,
-			    R"(YLP is provided "as is", without any warranty of any kind, express or implied.
-The author shall not be held liable for any damages, data loss, or issues arising from the use or misuse of this software.
-)");
-			////////////////////////////////////////////////////////
-
 			ImGui::NewLine();
-			ImGui::TitleText("Licenses and Acknowledgements", true);
+			ImGui::TitleText("Licenses and Acknowledgements");
+			ImGui::Separator();
 			ImGui::TextWrapped("YLP makes use of several open-source libraries and assets that are licensed under their respective terms.");
 			ImGui::Spacing();
 			ImGui::TextWrapped("See");
@@ -79,14 +71,22 @@ The author shall not be held liable for any damages, data loss, or issues arisin
 			ImGui::SameLine();
 			ImGui::TextWrapped("for details.");
 
+			// clang-format off
+
 			auto& ylpTag = YLPUpdater.GetLocalVersion().ToString();
 			ImGui::NewLine();
-			ImGui::TitleText("Useful Links", true);
-			ImGui::Spacing();
+			ImGui::TitleText("Useful Links");
+			ImGui::Separator();
 			ImGui::TextLinkOpenURL("Changelog "          ICON_MS_OPEN_IN_NEW, std::format("https://github.com/xesdoog/YLP/releases/tag/{}", ylpTag).c_str());
 			ImGui::TextLinkOpenURL("Source Code "        ICON_MS_OPEN_IN_NEW, "https://github.com/xesdoog/YLP");
 			ImGui::TextLinkOpenURL("Report a Bug "       ICON_MS_OPEN_IN_NEW, "https://github.com/xesdoog/ylp/issues/new/choose");
 			ImGui::TextLinkOpenURL("Start a Discussion " ICON_MS_OPEN_IN_NEW, "https://github.com/xesdoog/YLP/discussions/new/choose");
+
+
+			ImGui::Dummy(ImVec2(0, 10));
+			ImGui::InfoCallout(ImGui::ImCalloutType_Important, R"(YLP is provided "as is", without any warranty of any kind, express or implied.
+The author shall not be held liable for any damages, data loss, or issues arising from the use or misuse of this software.
+)");
 		}
 	};
 

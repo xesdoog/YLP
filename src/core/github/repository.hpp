@@ -1,4 +1,4 @@
-﻿// YLP Project - GPL-3.0
+// YLP Project - GPL-3.0
 // See LICENSE file or <https://www.gnu.org/licenses/> for details.
 
 
@@ -9,73 +9,75 @@ namespace YLP
 {
 	struct Repository
 	{
-		std::string name;
-		std::string description;
-		std::string lastUpdate;
-		std::string htmlUrl;
-		std::chrono::system_clock::time_point lastChecked{};
+		std::string m_Name;
+		std::string m_Description;
+		std::string m_LastUpdate;
+		std::string m_HtmlUrl;
 
-		bool isStarred = false;
-		bool isInstalled = false;
-		bool isDisabled = false;
-		bool isDownloading = false;
-		bool isPendingUpdate = false;
+		std::chrono::system_clock::time_point m_LastChecked{};
 
-		int stars = 0;
-		float downloadProgress = 0.f;
-		std::filesystem::path currentPath;
+		bool m_IsInstalled     = false;
+		bool m_IsDisabled      = false;
+		bool m_IsDownloading   = false;
+		bool m_IsPendingUpdate = false;
+		bool m_IsStarred       = false; // this is unused. We no longer have GitHub authentication like we did in the deprecated Python version
 
-		bool is_outdated() const
+		int m_Stars              = 0;
+		float m_DownloadProgress = 0.f;
+
+		fs::path m_CurrentPath;
+
+		bool IsOutdated() const
 		{
-			if (!isInstalled)
+			if (!m_IsInstalled)
 				return false;
 
-			if (lastChecked.time_since_epoch().count() == 0)
+			if (m_LastChecked.time_since_epoch().count() == 0)
 				return false;
 
 			std::tm tm = {};
-			std::istringstream ss(lastUpdate);
+			std::istringstream ss(m_LastUpdate);
 			ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
 			auto pushedTime = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
 
-			return lastChecked < pushedTime;
+			return m_LastChecked < pushedTime;
 		}
 	};
 
 	inline void to_json(nlohmann::json& j, const Repository& r)
 	{
 		j = nlohmann::json{
-		    {"name", r.name},
-		    {"description", r.description},
-		    {"lastUpdate", r.lastUpdate},
-		    {"stars", r.stars},
-		    {"isStarred", r.isStarred},
-		    {"isInstalled", r.isInstalled},
-		    {"isDisabled", r.isDisabled},
-		    {"htmlUrl", r.htmlUrl},
-		    {"lastChecked", std::chrono::system_clock::to_time_t(r.lastChecked)},
+		    {"name", r.m_Name},
+		    {"description", r.m_Description},
+		    {"lastUpdate", r.m_LastUpdate},
+		    {"stars", r.m_Stars},
+		    {"isStarred", r.m_IsStarred},
+		    {"isInstalled", r.m_IsInstalled},
+		    {"isDisabled", r.m_IsDisabled},
+		    {"htmlUrl", r.m_HtmlUrl},
+		    {"lastChecked", std::chrono::system_clock::to_time_t(r.m_LastChecked)},
 		};
 	}
 
 	inline void from_json(const nlohmann::json& j, Repository& r)
 	{
-		j.at("name").get_to(r.name);
-		j.at("description").get_to(r.description);
-		j.at("lastUpdate").get_to(r.lastUpdate);
-		j.at("stars").get_to(r.stars);
-		j.at("isStarred").get_to(r.isStarred);
-		j.at("isInstalled").get_to(r.isInstalled);
-		j.at("isDisabled").get_to(r.isDisabled);
-		j.at("htmlUrl").get_to(r.htmlUrl);
+		j.at("name").get_to(r.m_Name);
+		j.at("description").get_to(r.m_Description);
+		j.at("lastUpdate").get_to(r.m_LastUpdate);
+		j.at("stars").get_to(r.m_Stars);
+		j.at("isStarred").get_to(r.m_IsStarred);
+		j.at("isInstalled").get_to(r.m_IsInstalled);
+		j.at("isDisabled").get_to(r.m_IsDisabled);
+		j.at("htmlUrl").get_to(r.m_HtmlUrl);
 
 		if (j.contains("lastChecked") && !j["lastChecked"].is_null())
 		{
 			std::time_t t = j["lastChecked"].get<std::time_t>();
-			r.lastChecked = std::chrono::system_clock::from_time_t(t);
+			r.m_LastChecked = std::chrono::system_clock::from_time_t(t);
 		}
 		else
 		{
-			r.lastChecked = std::chrono::system_clock::time_point{};
+			r.m_LastChecked = std::chrono::system_clock::time_point{};
 		}
 	}
 }

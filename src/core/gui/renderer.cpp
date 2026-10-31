@@ -289,6 +289,7 @@ namespace YLP
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SwapBuffers(m_HDC);
+		ProcessTextureRequests();
 	}
 
 	ImVec2 Renderer::GetWindowSizeImpl() noexcept
@@ -310,7 +311,7 @@ namespace YLP
 		return std::nullopt;
 	}
 
-	ImTextureID Renderer::LoadTextureFromFileImpl(const std::filesystem::path& filepath)
+	ImTextureID Renderer::LoadTextureFromFileImpl(const fs::path& filepath, bool verbose)
 	{
 		std::string name = filepath.filename().string();
 		if (auto maybeTex = FindTextureByName(name); maybeTex.has_value())
@@ -320,7 +321,7 @@ namespace YLP
 		unsigned char* data = stbi_load(filepath.string().c_str(), &w, &h, &channels, 4);
 		if (!data)
 		{
-			LOG_ERROR("Failed to load image from {}", filepath.string());
+			LOG_ERROR("Failed to load texture '{}' from '{}'", name, filepath.string());
 			return 0;
 		}
 
@@ -334,12 +335,14 @@ namespace YLP
 
 		ImTextureID imguiId = static_cast<ImTextureID>(static_cast<intptr_t>(tex));
 		m_Textures.push_back({name, tex, imguiId, 1});
-		LOG_DEBUG("Loaded texture {}", name);
+
+		if (verbose)
+			LOG_DEBUG("Loaded texture '{}' from '{}'", name, filepath.string());
 
 		return imguiId;
 	}
 
-	ImTextureID Renderer::LoadTextureFromMemoryImpl(const unsigned char* data, size_t size, const std::string& name)
+	ImTextureID Renderer::LoadTextureFromMemoryImpl(const unsigned char* data, size_t size, const std::string& name, bool verbose)
 	{
 		if (auto maybeTex = FindTextureByName(name); maybeTex.has_value())
 			return maybeTex.value();
@@ -348,7 +351,7 @@ namespace YLP
 		unsigned char* pdata = stbi_load_from_memory(data, size, &w, &h, &channels, 4);
 		if (!pdata)
 		{
-			LOG_ERROR("Failed to load image: {}", name);
+			LOG_ERROR("Failed to load texture: '{}'", name);
 			stbi_image_free(pdata);
 			return NULL;
 		}
@@ -365,11 +368,13 @@ namespace YLP
 		ImTextureID imguiId = static_cast<ImTextureID>(static_cast<intptr_t>(tex));
 		m_Textures.push_back({name, tex, imguiId, 1});
 
-		LOG_DEBUG("Loaded texture {}", name);
+		if (verbose)
+			LOG_DEBUG("Loaded texture '{}'", name);
+
 		return imguiId;
 	}
 
-	ImTextureID Renderer::LoadRawTextureImpl(const unsigned char* rgbaData, int w, int h, const std::string& name)
+	ImTextureID Renderer::LoadRawTextureImpl(const unsigned char* rgbaData, int w, int h, const std::string& name, bool verbose)
 	{
 		if (auto maybeTex = FindTextureByName(name); maybeTex.has_value())
 			return maybeTex.value();
@@ -383,11 +388,46 @@ namespace YLP
 
 		ImTextureID imguiId = static_cast<ImTextureID>(static_cast<intptr_t>(tex));
 		m_Textures.push_back({name, tex, imguiId, 1});
+
+		if (verbose)
+			LOG_DEBUG("Loaded texture '{}'", name);
+
 		return imguiId;
+	}
+
+	void Renderer::RequestTextureImpl(const fs::path& filepath, ImTextureID* outTexture, bool verbose)
+	{
+		std::scoped_lock lock(m_PendingTextureMutex);
+		m_PendingTextures.push_back({.m_Name = filepath.filename().string(),
+		    .m_FilePath                      = filepath,
+		    .m_LoadType                      = eTextureLoadType::TLT_FILE,
+		    .m_OutId                         = outTexture});
+	}
+
+	void Renderer::RequestTextureImpl(const std::vector<uint8_t> data, size_t size, const std::string& name, ImTextureID* outTexture, bool verbose)
+	{
+		std::scoped_lock lock(m_PendingTextureMutex);
+		m_PendingTextures.push_back({.m_Name = name,
+		    .m_TexData                       = data,
+		    .m_DataSize                      = size,
+		    .m_LoadType                      = eTextureLoadType::TLT_MEMORY,
+		    .m_OutId                         = outTexture});
+	}
+
+	void Renderer::RequestTextureImpl(const std::vector<uint8_t> rgbaData, int w, int h, const std::string& name, ImTextureID* outTexture, bool verbose)
+	{
+		std::scoped_lock lock(m_PendingTextureMutex);
+		m_PendingTextures.push_back({.m_Name = name,
+		    .m_TexData                       = rgbaData,
+		    .m_Width                         = w,
+		    .m_Height                        = h,
+		    .m_LoadType                      = eTextureLoadType::TLT_RAW,
+		    .m_OutId                         = outTexture});
 	}
 
 	void Renderer::ReleaseTextureImpl(const std::string& name)
 	{
+		std::scoped_lock lock(m_TextureMutex);
 		for (auto it = m_Textures.begin(); it != m_Textures.end(); ++it)
 		{
 			if (it->m_Name == name)
@@ -404,6 +444,7 @@ namespace YLP
 
 	void Renderer::ReleaseTextureImpl(const ImTextureID& imguiID)
 	{
+		std::scoped_lock lock(m_TextureMutex);
 		for (auto it = m_Textures.begin(); it != m_Textures.end(); ++it)
 		{
 			if (it->m_ImGuiId == imguiID)
@@ -416,6 +457,69 @@ namespace YLP
 				break;
 			}
 		}
+	}
+
+	void Renderer::ProcessTextureRequests()
+	{
+		if (m_PendingTextures.empty())
+			return;
+
+		auto now = std::chrono::steady_clock::now();
+		if (now - m_LastPendingTexProcessTime < 16ms)
+			return;
+
+		std::scoped_lock lock(m_PendingTextureMutex);
+
+		auto& it       = m_PendingTextures.back();
+		bool shouldPop = false;
+
+		switch (it.m_LoadType)
+		{
+		case eTextureLoadType::TLT_FILE:
+		{
+			auto& path = it.m_FilePath;
+			if (!IO::Exists(path))
+			{
+				shouldPop = true;
+				break;
+			}
+
+			*it.m_OutId = LoadTextureFromFile(path, false);
+			shouldPop   = true;
+			break;
+		}
+		case eTextureLoadType::TLT_MEMORY:
+		{
+			const unsigned char* data = it.m_TexData.data();
+			if (!data)
+			{
+				shouldPop = true;
+				break;
+			}
+
+			*it.m_OutId = LoadTextureFromMemory(data, it.m_DataSize, it.m_Name, false);
+			shouldPop   = true;
+			break;
+		}
+		case eTextureLoadType::TLT_RAW:
+		{
+			const unsigned char* data = it.m_TexData.data();
+			if (!data)
+			{
+				shouldPop = true;
+				break;
+			}
+
+			*it.m_OutId = LoadRawTexture(data, it.m_Width, it.m_Height, it.m_Name, false);
+			shouldPop   = true;
+			break;
+		}
+		}
+
+		if (shouldPop)
+			m_PendingTextures.pop_back();
+
+		m_LastPendingTexProcessTime = now;
 	}
 
 	LRESULT CALLBACK Renderer::WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

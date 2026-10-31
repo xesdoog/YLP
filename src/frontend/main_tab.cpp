@@ -175,7 +175,7 @@ namespace YLP::Frontend
 			if (menu)
 			{
 				auto& cfg                   = Config();
-				const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
+				const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? AT_LEGACY : AT_ENHANCED;
 				bool wantsAutoInject        = (cfg.autoMonitorFlags & monitorTarget) != 0;
 				bool wantsAutoUpdate        = (cfg.menuAutoUpdateFlags & monitorTarget) != 0;
 
@@ -239,7 +239,7 @@ namespace YLP::Frontend
 			if (!menu || menu.GetState() == YimMenu::eMenuViewState::Downloading)
 				return;
 
-			const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? MonitorLegacy : MonitorEnhanced;
+			const uint8_t monitorTarget = (menu.m_Version == YimMenuV1) ? AT_LEGACY : AT_ENHANCED;
 			if ((Config().autoMonitorFlags & monitorTarget))
 				return;
 
@@ -310,12 +310,14 @@ namespace YLP::Frontend
 			ImGui::SetNextWindowPos(popupPos, ImGuiCond_Always);
 			if (ImGui::BeginPopup("##launcherPopup", ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
 			{
+				const int numLaunchers = static_cast<int>(m_Launchers.size());
+				bool hasExePath        = !menu.m_ExePath.empty();
+				int* launcherIdx       = &Config().launcherIndex;
+
 				ImGui::TextCentered("Select Launcher");
 				ImGui::Separator();
-				const size_t numLaunchers = m_Launchers.size();
-				bool hasExePath           = !menu.m_ExePath.empty();
-				int* launcherIdx          = &Config().launcherIndex;
-				for (size_t i = 0; i < numLaunchers; i++)
+
+				for (int i = 0; i < numLaunchers; i++)
 				{
 					const auto& launcher = m_Launchers[i];
 					bool selected        = (*launcherIdx == i);
@@ -323,9 +325,8 @@ namespace YLP::Frontend
 					ImGui::Selectable(launcher, selected);
 					if (ImGui::IsItemClicked(0))
 					{
-						int v        = static_cast<int>(i);
-						*launcherIdx = v;
-						if (v == 3 && !hasExePath)
+						*launcherIdx = i;
+						if (i == 3 && !hasExePath)
 						{
 							const std::vector<COMDLG_FILTERSPEC> filters = {{L"EXE (*.exe)", L"*.exe"}};
 							std::filesystem::path selected               = IO::OpenFileDialog(filters, L"Select GTA V Executable");
@@ -344,7 +345,8 @@ namespace YLP::Frontend
 						}
 					}
 				}
-				if (hasExePath)
+
+				if (hasExePath && *launcherIdx == 3)
 				{
 					ImGui::Dummy(ImVec2(0, 10));
 					ImGui::Separator();
@@ -468,19 +470,19 @@ namespace YLP::Frontend
 		{
 			switch (Config().autoMonitorFlags)
 			{
-			case MonitorNone:
+			case AT_NONE:
 				g_ProcLegacy->Stop();
 				g_ProcEnhanced->Stop();
 				break;
-			case MonitorLegacy:
+			case AT_LEGACY:
 				g_ProcLegacy->Start(100ms);
 				g_ProcEnhanced->Stop();
 				break;
-			case MonitorEnhanced:
+			case AT_ENHANCED:
 				g_ProcLegacy->Stop();
 				g_ProcEnhanced->Start(100ms);
 				break;
-			case MonitorBoth:
+			case AT_BOTH:
 				g_ProcLegacy->Start(100ms);
 				g_ProcEnhanced->Start(100ms);
 				break;
